@@ -7,7 +7,8 @@ class LectureTranscriberApp {
     constructor() {
         this.ui = new UIController();
         this.webSpeechTranscriber = null;
-        this.whisperTranscriber = null;
+        this.transformersTranscriber = null;
+        this.whisperTurboTranscriber = null;
         this.currentMode = 'web-speech';
         this.isRecording = false;
 
@@ -23,7 +24,7 @@ class LectureTranscriberApp {
      * Initialize the application
      */
     async init() {
-        console.log('Initializing Lecture Transcriber...');
+        console.log('Initializing Speech-to-Text App...');
 
         // Check browser compatibility
         this.checkCompatibility();
@@ -34,11 +35,20 @@ class LectureTranscriberApp {
             this.setupWebSpeechCallbacks();
         }
 
-        // Initialize Whisper transcriber (placeholder for now)
-        if (Utils.compatibility.hasWasm()) {
-            this.whisperTranscriber = new WhisperTranscriber();
-            this.setupWhisperCallbacks();
+        // Initialize Transformers.js transcriber
+        if (TransformersWhisperTranscriber.isSupported()) {
+            this.transformersTranscriber = new TransformersWhisperTranscriber();
+            this.setupTransformersCallbacks();
         }
+
+        // Initialize Whisper Turbo transcriber
+        if (WhisperTurboTranscriber.isSupported()) {
+            this.whisperTurboTranscriber = new WhisperTurboTranscriber();
+            this.setupWhisperTurboCallbacks();
+        }
+
+        // Update device recommendations
+        this.ui.updateDeviceRecommendations();
 
         // Load saved mode
         const savedMode = Utils.storage.loadMode();
@@ -95,12 +105,12 @@ class LectureTranscriberApp {
     }
 
     /**
-     * Set up Whisper transcriber callbacks
+     * Set up Transformers.js transcriber callbacks
      */
-    setupWhisperCallbacks() {
-        if (!this.whisperTranscriber) return;
+    setupTransformersCallbacks() {
+        if (!this.transformersTranscriber) return;
 
-        this.whisperTranscriber.onTranscriptUpdate = (transcript) => {
+        this.transformersTranscriber.onTranscriptUpdate = (transcript) => {
             this.ui.updateTranscript(transcript);
             // Auto-save final transcript
             if (transcript.final) {
@@ -108,19 +118,50 @@ class LectureTranscriberApp {
             }
         };
 
-        this.whisperTranscriber.onError = (error) => {
+        this.transformersTranscriber.onError = (error) => {
             this.ui.showError(error);
         };
 
-        this.whisperTranscriber.onStatusChange = (status) => {
+        this.transformersTranscriber.onStatusChange = (status) => {
             this.ui.updateStatus(status);
         };
 
-        this.whisperTranscriber.onProgress = (progress) => {
+        this.transformersTranscriber.onProgress = (progress) => {
             this.ui.updateWhisperProgress(progress);
         };
 
-        this.whisperTranscriber.onLoadingChange = (isLoading) => {
+        this.transformersTranscriber.onLoadingChange = (isLoading) => {
+            this.ui.showWhisperLoading(isLoading);
+        };
+    }
+
+    /**
+     * Set up Whisper Turbo transcriber callbacks
+     */
+    setupWhisperTurboCallbacks() {
+        if (!this.whisperTurboTranscriber) return;
+
+        this.whisperTurboTranscriber.onTranscriptUpdate = (transcript) => {
+            this.ui.updateTranscript(transcript);
+            // Auto-save final transcript
+            if (transcript.final) {
+                this.autoSave(transcript.final);
+            }
+        };
+
+        this.whisperTurboTranscriber.onError = (error) => {
+            this.ui.showError(error);
+        };
+
+        this.whisperTurboTranscriber.onStatusChange = (status) => {
+            this.ui.updateStatus(status);
+        };
+
+        this.whisperTurboTranscriber.onProgress = (progress) => {
+            this.ui.updateWhisperProgress(progress);
+        };
+
+        this.whisperTurboTranscriber.onLoadingChange = (isLoading) => {
             this.ui.showWhisperLoading(isLoading);
         };
     }
@@ -131,7 +172,8 @@ class LectureTranscriberApp {
     setupEventListeners() {
         // Mode selection
         const modeWebSpeechBtn = document.getElementById('mode-web-speech');
-        const modeWhisperBtn = document.getElementById('mode-whisper');
+        const modeTransformersBtn = document.getElementById('mode-transformers');
+        const modeWhisperTurboBtn = document.getElementById('mode-whisper-turbo');
 
         if (modeWebSpeechBtn) {
             modeWebSpeechBtn.addEventListener('click', () => {
@@ -141,10 +183,18 @@ class LectureTranscriberApp {
             });
         }
 
-        if (modeWhisperBtn) {
-            modeWhisperBtn.addEventListener('click', () => {
+        if (modeTransformersBtn) {
+            modeTransformersBtn.addEventListener('click', () => {
                 if (!this.isRecording) {
-                    this.switchMode('whisper');
+                    this.switchMode('transformers');
+                }
+            });
+        }
+
+        if (modeWhisperTurboBtn) {
+            modeWhisperTurboBtn.addEventListener('click', () => {
+                if (!this.isRecording) {
+                    this.switchMode('whisper-turbo');
                 }
             });
         }
@@ -188,7 +238,7 @@ class LectureTranscriberApp {
 
     /**
      * Switch between transcription modes
-     * @param {string} mode - Mode to switch to ('web-speech' or 'whisper')
+     * @param {string} mode - Mode to switch to ('web-speech', 'transformers', or 'whisper-turbo')
      */
     switchMode(mode) {
         if (this.isRecording) {
@@ -202,9 +252,13 @@ class LectureTranscriberApp {
 
         console.log('Switched to mode:', mode);
 
-        // Show warning for Whisper on mobile
-        if (mode === 'whisper' && Utils.compatibility.isMobile()) {
-            this.ui.showError('Whisper mode is not recommended on mobile devices due to performance limitations');
+        // Show performance warnings
+        const isMobile = Utils.compatibility.isMobile();
+
+        if (mode === 'transformers' && isMobile) {
+            this.ui.showError('Warning: Transformers mode is slow on mobile. Web Speech is faster for live transcription.');
+        } else if (mode === 'whisper-turbo' && isMobile) {
+            this.ui.showError('Warning: Whisper Turbo is slow on mobile. Works better on laptop.');
         }
     }
 
@@ -214,8 +268,10 @@ class LectureTranscriberApp {
     getCurrentTranscriber() {
         if (this.currentMode === 'web-speech') {
             return this.webSpeechTranscriber;
-        } else if (this.currentMode === 'whisper') {
-            return this.whisperTranscriber;
+        } else if (this.currentMode === 'transformers') {
+            return this.transformersTranscriber;
+        } else if (this.currentMode === 'whisper-turbo') {
+            return this.whisperTurboTranscriber;
         }
         return null;
     }

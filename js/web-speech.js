@@ -194,8 +194,7 @@ class WebSpeechTranscriber {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             stream.getTracks().forEach(track => track.stop()); // Stop the test stream
 
-            // Reset transcripts
-            this.finalTranscript = '';
+            // Only reset interim transcript (keep final transcript to accumulate)
             this.interimTranscript = '';
 
             // Enable auto-restart

@@ -9,8 +9,15 @@ class UIController {
         this.elements = {
             // Mode selector
             modeWebSpeech: document.getElementById('mode-web-speech'),
-            modeWhisper: document.getElementById('mode-whisper'),
+            modeTransformers: document.getElementById('mode-transformers'),
+            modeWhisperTurbo: document.getElementById('mode-whisper-turbo'),
             modeDescription: document.getElementById('mode-desc-text'),
+            modePerformance: document.getElementById('mode-performance'),
+
+            // Mode recommendations
+            recWebSpeech: document.getElementById('rec-web-speech'),
+            recTransformers: document.getElementById('rec-transformers'),
+            recWhisperTurbo: document.getElementById('rec-whisper-turbo'),
 
             // Status
             statusDot: document.getElementById('status-dot'),
@@ -265,27 +272,28 @@ class UIController {
 
     /**
      * Update mode selection
-     * @param {string} mode - Selected mode ('web-speech' or 'whisper')
+     * @param {string} mode - Selected mode ('web-speech', 'transformers', or 'whisper-turbo')
      */
     updateModeSelection(mode) {
         this.currentMode = mode;
 
         // Update button states
-        if (this.elements.modeWebSpeech) {
-            if (mode === 'web-speech') {
-                this.elements.modeWebSpeech.classList.add('active');
-            } else {
-                this.elements.modeWebSpeech.classList.remove('active');
-            }
-        }
+        const modes = {
+            'web-speech': this.elements.modeWebSpeech,
+            'transformers': this.elements.modeTransformers,
+            'whisper-turbo': this.elements.modeWhisperTurbo
+        };
 
-        if (this.elements.modeWhisper) {
-            if (mode === 'whisper') {
-                this.elements.modeWhisper.classList.add('active');
-            } else {
-                this.elements.modeWhisper.classList.remove('active');
+        Object.keys(modes).forEach(key => {
+            const element = modes[key];
+            if (element) {
+                if (key === mode) {
+                    element.classList.add('active');
+                } else {
+                    element.classList.remove('active');
+                }
             }
-        }
+        });
 
         // Update description
         this.updateModeDescription(mode);
@@ -298,12 +306,36 @@ class UIController {
     updateModeDescription(mode) {
         if (!this.elements.modeDescription) return;
 
+        const isMobile = Utils.compatibility.isMobile();
+
         const descriptions = {
-            'web-speech': 'Real-time transcription using browser\'s speech recognition. Requires internet connection.',
-            'whisper': '⚠️ Experimental: Offline transcription with Whisper. Not real-time, requires model download (31-75MB). Best on desktop.'
+            'web-speech': {
+                text: 'Browser speech recognition. Needs internet. Best for real-time transcription.',
+                performance: 'Real-time (under 1 second delay)'
+            },
+            'transformers': {
+                text: 'Offline mode with 40MB model download. Better accuracy than Web Speech.',
+                performance: isMobile ? 'Slow on mobile (30-50 sec per 10 sec audio)' : 'Decent on laptop (8-15 sec per 10 sec audio)'
+            },
+            'whisper-turbo': {
+                text: 'Offline mode with 40MB model download. Faster than Transformers.',
+                performance: isMobile ? 'Still slow on mobile (15-30 sec per 10 sec audio)' : 'Fast on laptop (3-8 sec per 10 sec audio)'
+            }
         };
 
-        this.elements.modeDescription.textContent = descriptions[mode] || '';
+        const modeInfo = descriptions[mode] || descriptions['web-speech'];
+        this.elements.modeDescription.textContent = modeInfo.text;
+
+        if (this.elements.modePerformance) {
+            this.elements.modePerformance.textContent = modeInfo.performance;
+        }
+    }
+
+    /**
+     * Update device recommendations for each mode
+     */
+    updateDeviceRecommendations() {
+        // Removed icon recommendations - keeping method for compatibility
     }
 
     /**

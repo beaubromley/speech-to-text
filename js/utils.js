@@ -309,15 +309,15 @@ const Utils = {
             const warnings = [];
 
             if (!this.isSecureContext()) {
-                warnings.push('⚠️ This site must be accessed via HTTPS for microphone access.');
+                warnings.push('This site needs HTTPS for microphone access.');
             }
 
             if (!this.hasWebSpeech()) {
-                warnings.push('⚠️ Web Speech API is not supported in this browser.');
+                warnings.push('Web Speech API not supported in this browser.');
             }
 
             if (!this.isRecommendedBrowser() && this.isMobile()) {
-                warnings.push('⚠️ For best results on mobile, use Chrome or Edge browser.');
+                warnings.push('For best results on mobile, use Chrome or Edge.');
             }
 
             return warnings;
