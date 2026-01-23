@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Speech-to-Text</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>📝 Speech-to-Text</h1>
+        <button id="help-btn" class="icon-btn" aria-label="Help">?</button>
+    </header>
+
+    <main>
+        <!-- Browser Compatibility Warning -->
+        <div id="compatibility-warning" class="warning hidden">
+            <p id="compatibility-message"></p>
+        </div>
+
+        <!-- Mode Selector -->
+        <section class="mode-selector">
+            <button id="mode-web-speech" class="mode-btn active" data-mode="web-speech">
+                Web Speech API
+            </button>
+            <button id="mode-whisper" class="mode-btn" data-mode="whisper">
+                Whisper (Experimental)
+            </button>
+        </section>
+
+        <!-- Mode Description -->
+        <div id="mode-description" class="mode-description">
+            <p id="mode-desc-text">Real-time transcription using browser's speech recognition. Requires internet connection.</p>
+        </div>
+
+        <!-- Status Indicator -->
+        <section class="status-section">
+            <div class="status-indicator">
+                <span id="status-dot" class="status-dot"></span>
+                <span id="status-text" class="status-text">Ready</span>
+            </div>
+        </section>
+
+        <!-- Control Buttons -->
+        <section class="controls">
+            <button id="start-btn" class="control-btn primary">
+                START
+            </button>
+            <button id="stop-btn" class="control-btn secondary hidden">
+                STOP
+            </button>
+            <button id="clear-btn" class="control-btn danger">
+                CLEAR
+            </button>
+        </section>
+
+        <!-- Whisper Model Loading (hidden by default) -->
+        <section id="whisper-loading" class="whisper-loading hidden">
+            <p>Loading Whisper model...</p>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <p id="progress-text" class="progress-text">0%</p>
+        </section>
+
+        <!-- Transcript Display -->
+        <section class="transcript-section">
+            <h2>Transcript</h2>
+            <div id="transcript-container" class="transcript-container">
+                <p id="transcript-text" class="transcript-text">Your transcription will appear here...</p>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <section class="actions">
+            <button id="copy-btn" class="action-btn">
+                📋 Copy to Clipboard
+            </button>
+            <button id="export-btn" class="action-btn">
+                💾 Export as Text
+            </button>
+        </section>
+    </main>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-modal" class="close-btn">&times;</span>
+            <h2>How to Use</h2>
+
+            <h3>Web Speech API Mode (Recommended)</h3>
+            <ol>
+                <li>Ensure you're using Chrome or Edge browser</li>
+                <li>Grant microphone permission when prompted</li>
+                <li>Tap START to begin recording</li>
+                <li>Speak naturally - transcription appears in real-time</li>
+                <li>The app will keep listening even during pauses</li>
+                <li>Tap STOP when finished</li>
+                <li>Use COPY or EXPORT to save your transcript</li>
+            </ol>
+
+            <h3>Whisper Mode (Experimental)</h3>
+            <p class="warning-text">⚠️ Not recommended for mobile devices</p>
+            <ul>
+                <li>Works offline but requires 31-75MB model download</li>
+                <li>Processing is delayed (2-10x slower than real-time)</li>
+                <li>Better accuracy but not suitable for live lectures</li>
+                <li>Use desktop for best results</li>
+            </ul>
+
+            <h3>Microphone Permissions</h3>
+            <p><strong>If permission is denied:</strong></p>
+            <ul>
+                <li><strong>iOS:</strong> Settings → Safari → Camera & Microphone</li>
+                <li><strong>Android:</strong> Chrome → Site Settings → Microphone</li>
+                <li><strong>Desktop:</strong> Click the lock icon in the address bar</li>
+            </ul>
+
+            <h3>Requirements</h3>
+            <ul>
+                <li>HTTPS connection (secure site)</li>
+                <li>Microphone access permission</li>
+                <li>Web Speech: Internet connection required</li>
+                <li>Whisper: Works offline after model download</li>
+            </ul>
+
+            <h3>Tips</h3>
+            <ul>
+                <li>Keep your phone screen on during recording</li>
+                <li>Speak clearly and at a normal pace</li>
+                <li>The app auto-saves your transcript</li>
+                <li>Close other apps for better performance</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal hidden">
+        <div class="modal-content confirm-modal">
+            <h3 id="confirm-title">Confirm Action</h3>
+            <p id="confirm-message">Are you sure?</p>
+            <div class="confirm-buttons">
+                <button id="confirm-yes" class="control-btn danger">Yes</button>
+                <button id="confirm-no" class="control-btn secondary">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <p id="toast-message"></p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/ui-controller.js"></script>
+    <script src="js/web-speech.js"></script>
+    <script src="js/whisper-wasm.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
