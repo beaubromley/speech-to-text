@@ -460,9 +460,10 @@ class LectureTranscriberApp {
         const transcriber = this.getCurrentTranscriber();
         if (!transcriber) return;
 
-        // Update the transcriber's transcript
-        if (transcriber.setTranscript) {
-            transcriber.setTranscript(newText);
+        // Update the transcriber's internal state directly without triggering UI update
+        // This prevents the feedback loop that causes duplication issues
+        if (transcriber.finalTranscript !== undefined) {
+            transcriber.finalTranscript = newText;
         }
 
         // Save to storage
