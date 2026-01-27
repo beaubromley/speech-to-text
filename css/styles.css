@@ -372,11 +372,25 @@ main {
     color: #333;
     white-space: pre-wrap;
     word-wrap: break-word;
+    outline: none;
 }
 
 .transcript-text.empty {
     color: #999;
     font-style: italic;
+}
+
+.transcript-text.editable {
+    cursor: text;
+    background-color: #fff;
+}
+
+.transcript-text.editable:focus {
+    background-color: #fffef7;
+    border: 2px solid #4a90e2;
+    border-radius: 4px;
+    padding: 0.95rem;
+    margin: -2px;
 }
 
 .interim-text {

@@ -40,6 +40,9 @@ class LectureTranscriberApp {
         // Set up event listeners
         this.setupEventListeners();
 
+        // Set up transcript edit listener
+        this.ui.onTranscriptEdit((newText) => this.handleTranscriptEdit(newText));
+
         // Show initial status
         this.ui.updateStatus('ready');
 
@@ -436,6 +439,28 @@ class LectureTranscriberApp {
         } else {
             this.ui.showError('Failed to export summary');
         }
+    }
+
+    /**
+     * Handle transcript editing
+     * @param {string} newText - Edited transcript text
+     */
+    handleTranscriptEdit(newText) {
+        const transcriber = this.getCurrentTranscriber();
+        if (!transcriber) return;
+
+        // Update the transcriber's transcript
+        if (transcriber.setTranscript) {
+            transcriber.setTranscript(newText);
+        }
+
+        // Save to storage
+        this.autoSave(newText);
+
+        // Update word count
+        this.ui.updateWordCount(newText);
+
+        console.log('Transcript edited and saved');
     }
 }
 

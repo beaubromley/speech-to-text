@@ -169,6 +169,9 @@ class UIController {
         if (this.elements.clearBtn) {
             this.elements.clearBtn.disabled = isRecording;
         }
+
+        // Toggle transcript editability
+        this.setTranscriptEditable(!isRecording);
     }
 
     /**
@@ -589,6 +592,56 @@ class UIController {
         if (this.elements.exportSummaryBtn) {
             this.elements.exportSummaryBtn.disabled = !hasSummary;
         }
+    }
+
+    /**
+     * Set transcript editability
+     * @param {boolean} editable - Whether transcript should be editable
+     */
+    setTranscriptEditable(editable) {
+        if (!this.elements.transcriptText) return;
+
+        if (editable) {
+            this.elements.transcriptText.setAttribute('contenteditable', 'true');
+            this.elements.transcriptText.classList.add('editable');
+        } else {
+            this.elements.transcriptText.setAttribute('contenteditable', 'false');
+            this.elements.transcriptText.classList.remove('editable');
+        }
+    }
+
+    /**
+     * Get current transcript text from the editable element
+     * @returns {string} - Current transcript text
+     */
+    getTranscriptText() {
+        if (!this.elements.transcriptText) return '';
+
+        // Get text content, filtering out empty and interim spans
+        const textContent = this.elements.transcriptText.textContent || '';
+
+        // Remove the preview ellipsis if present
+        return textContent.replace(/^\.\.\.\s*/, '').trim();
+    }
+
+    /**
+     * Set up transcript edit listener
+     * @param {Function} callback - Callback when transcript is edited
+     */
+    onTranscriptEdit(callback) {
+        if (!this.elements.transcriptText) return;
+
+        this.elements.transcriptText.addEventListener('input', () => {
+            const newText = this.getTranscriptText();
+            callback(newText);
+        });
+
+        // Also handle paste events to clean up formatting
+        this.elements.transcriptText.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        });
     }
 }
 
