@@ -236,8 +236,8 @@ class LectureTranscriberApp {
 
         // Ask for confirmation
         const confirmed = await this.ui.showConfirmation(
-            'Clear Transcript',
-            'Are you sure you want to clear the transcript? This cannot be undone.'
+            'Clear All',
+            'Are you sure you want to clear the transcript, summary, and reset the prompt? This cannot be undone.'
         );
 
         if (!confirmed) {
@@ -255,9 +255,20 @@ class LectureTranscriberApp {
 
         // Update UI
         this.ui.updateTranscript({ final: '', interim: '' });
-        this.ui.showSuccess('Transcript cleared');
 
-        console.log('Transcript cleared');
+        // Clear AI summary
+        this.currentSummary = '';
+        if (this.ui.elements.summaryContainer) {
+            this.ui.elements.summaryContainer.classList.add('hidden');
+        }
+        this.ui.updateSummaryActionButtons(false);
+
+        // Reset prompt to default
+        this.geminiAPI.resetPrompt();
+
+        this.ui.showSuccess('All cleared and reset');
+
+        console.log('Transcript, summary, and prompt cleared');
     }
 
     /**
