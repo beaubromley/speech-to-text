@@ -6,7 +6,7 @@
 class GeminiAPI {
     constructor() {
         this.apiKey = window.CONFIG?.GEMINI_API_KEY || '';
-        this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-pro:generateContent';
+        this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
         this.defaultPrompt = this.getDefaultPrompt();
         this.customPrompt = null;
     }
