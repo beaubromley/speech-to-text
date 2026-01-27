@@ -15,25 +15,6 @@
     </header>
 
     <main>
-        <!-- Mode Selector -->
-        <section class="mode-selector">
-            <button id="mode-web-speech" class="mode-btn active" data-mode="web-speech">
-                <span class="mode-name">Web Speech</span>
-            </button>
-            <button id="mode-transformers" class="mode-btn" data-mode="transformers">
-                <span class="mode-name">Transformers</span>
-            </button>
-            <button id="mode-whisper-turbo" class="mode-btn" data-mode="whisper-turbo">
-                <span class="mode-name">Whisper Turbo</span>
-            </button>
-        </section>
-
-        <!-- Mode Description -->
-        <div id="mode-description" class="mode-description">
-            <p id="mode-desc-text">Real-time transcription using browser's speech recognition. Requires internet connection.</p>
-            <p id="mode-performance" class="mode-performance"></p>
-        </div>
-
         <!-- Status Indicator -->
         <section class="status-section">
             <div class="status-indicator">
@@ -55,18 +36,15 @@
             </button>
         </section>
 
-        <!-- Whisper Model Loading (hidden by default) -->
-        <section id="whisper-loading" class="whisper-loading hidden">
-            <p>Loading Whisper model...</p>
-            <div class="progress-bar">
-                <div id="progress-fill" class="progress-fill"></div>
-            </div>
-            <p id="progress-text" class="progress-text">0%</p>
-        </section>
-
         <!-- Transcript Display -->
         <section class="transcript-section">
-            <h2>Transcript</h2>
+            <div class="transcript-header">
+                <h2>Transcript</h2>
+                <div class="transcript-info">
+                    <span id="word-count" class="word-count">0 words</span>
+                    <button id="toggle-preview-btn" class="toggle-preview-btn">Preview</button>
+                </div>
+            </div>
             <div id="transcript-container" class="transcript-container">
                 <p id="transcript-text" class="transcript-text">Your transcription will appear here...</p>
             </div>
@@ -82,6 +60,53 @@
             </button>
         </section>
 
+        <!-- AI Summary Section -->
+        <section class="ai-summary-section">
+            <h2>AI Summary</h2>
+            <div class="summary-controls">
+                <button id="generate-summary-btn" class="action-btn">
+                    Generate Summary
+                </button>
+                <button id="edit-prompt-btn" class="action-btn secondary-action-btn">
+                    Edit Prompt
+                </button>
+            </div>
+
+            <!-- Summary Display -->
+            <div id="summary-container" class="summary-container hidden">
+                <div id="summary-text" class="summary-text">
+                    Summary will appear here...
+                </div>
+                <div class="summary-actions">
+                    <button id="copy-summary-btn" class="action-btn small-action-btn">
+                        Copy Summary
+                    </button>
+                    <button id="export-summary-btn" class="action-btn small-action-btn">
+                        Export Summary
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="summary-loading" class="summary-loading hidden">
+                <div class="loading-spinner"></div>
+                <p>Generating summary...</p>
+            </div>
+        </section>
+
+        <!-- Prompt Edit Modal -->
+        <div id="prompt-modal" class="modal hidden">
+            <div class="modal-content">
+                <span id="close-prompt-modal" class="close-btn">&times;</span>
+                <h2>Edit AI Prompt</h2>
+                <textarea id="prompt-textarea" class="prompt-textarea" rows="10"></textarea>
+                <div class="modal-buttons">
+                    <button id="reset-prompt-btn" class="control-btn secondary">Reset to Default</button>
+                    <button id="save-prompt-btn" class="control-btn primary">Save & Generate</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Browser Compatibility Note -->
         <div id="compatibility-warning" class="compatibility-note hidden">
             <p id="compatibility-message"></p>
@@ -94,7 +119,6 @@
             <span id="close-modal" class="close-btn">&times;</span>
             <h2>How to Use</h2>
 
-            <h3>Web Speech Mode</h3>
             <ol>
                 <li>Use Chrome or Edge browser</li>
                 <li>Allow microphone access</li>
@@ -103,14 +127,6 @@
                 <li>Click STOP when done</li>
                 <li>Copy or export your transcript</li>
             </ol>
-
-            <h3>Transformers & Whisper Modes</h3>
-            <ul>
-                <li>Work offline after downloading model (40-75MB)</li>
-                <li>Slower processing, better for recorded audio</li>
-                <li>Transformers: decent on laptop, slow on mobile</li>
-                <li>Whisper Turbo: fast on laptop, still slow on mobile</li>
-            </ul>
 
             <h3>Microphone Permissions</h3>
             <ul>
@@ -122,7 +138,7 @@
             <h3>Notes</h3>
             <ul>
                 <li>Needs HTTPS connection</li>
-                <li>Web Speech needs internet, others work offline</li>
+                <li>Requires internet connection</li>
                 <li>Transcript auto-saves to browser</li>
                 <li>Works best in quiet environments</li>
             </ul>
@@ -147,12 +163,12 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/gemini-api.js"></script>
     <script src="js/ui-controller.js"></script>
     <script src="js/audio-processor.js"></script>
     <script src="js/web-speech.js"></script>
-    <script src="js/transformers-whisper.js"></script>
-    <script src="js/whisper-turbo.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

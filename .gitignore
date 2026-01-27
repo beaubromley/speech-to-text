@@ -1,3 +1,6 @@
 test.html
 .DS_Store
 *.log
+
+# API Keys (do not commit)
+js/config.js

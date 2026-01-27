@@ -7,10 +7,9 @@ class LectureTranscriberApp {
     constructor() {
         this.ui = new UIController();
         this.webSpeechTranscriber = null;
-        this.transformersTranscriber = null;
-        this.whisperTurboTranscriber = null;
-        this.currentMode = 'web-speech';
         this.isRecording = false;
+        this.geminiAPI = new GeminiAPI();
+        this.currentSummary = '';
 
         // Auto-save debounced
         this.autoSave = Utils.debounce((text) => {
@@ -34,25 +33,6 @@ class LectureTranscriberApp {
             this.webSpeechTranscriber = new WebSpeechTranscriber();
             this.setupWebSpeechCallbacks();
         }
-
-        // Initialize Transformers.js transcriber
-        if (TransformersWhisperTranscriber.isSupported()) {
-            this.transformersTranscriber = new TransformersWhisperTranscriber();
-            this.setupTransformersCallbacks();
-        }
-
-        // Initialize Whisper Turbo transcriber
-        if (WhisperTurboTranscriber.isSupported()) {
-            this.whisperTurboTranscriber = new WhisperTurboTranscriber();
-            this.setupWhisperTurboCallbacks();
-        }
-
-        // Update device recommendations
-        this.ui.updateDeviceRecommendations();
-
-        // Load saved mode
-        const savedMode = Utils.storage.loadMode();
-        this.switchMode(savedMode);
 
         // Restore saved transcript
         this.restoreTranscript();
@@ -105,100 +85,9 @@ class LectureTranscriberApp {
     }
 
     /**
-     * Set up Transformers.js transcriber callbacks
-     */
-    setupTransformersCallbacks() {
-        if (!this.transformersTranscriber) return;
-
-        this.transformersTranscriber.onTranscriptUpdate = (transcript) => {
-            this.ui.updateTranscript(transcript);
-            // Auto-save final transcript
-            if (transcript.final) {
-                this.autoSave(transcript.final);
-            }
-        };
-
-        this.transformersTranscriber.onError = (error) => {
-            this.ui.showError(error);
-        };
-
-        this.transformersTranscriber.onStatusChange = (status) => {
-            this.ui.updateStatus(status);
-        };
-
-        this.transformersTranscriber.onProgress = (progress) => {
-            this.ui.updateWhisperProgress(progress);
-        };
-
-        this.transformersTranscriber.onLoadingChange = (isLoading) => {
-            this.ui.showWhisperLoading(isLoading);
-        };
-    }
-
-    /**
-     * Set up Whisper Turbo transcriber callbacks
-     */
-    setupWhisperTurboCallbacks() {
-        if (!this.whisperTurboTranscriber) return;
-
-        this.whisperTurboTranscriber.onTranscriptUpdate = (transcript) => {
-            this.ui.updateTranscript(transcript);
-            // Auto-save final transcript
-            if (transcript.final) {
-                this.autoSave(transcript.final);
-            }
-        };
-
-        this.whisperTurboTranscriber.onError = (error) => {
-            this.ui.showError(error);
-        };
-
-        this.whisperTurboTranscriber.onStatusChange = (status) => {
-            this.ui.updateStatus(status);
-        };
-
-        this.whisperTurboTranscriber.onProgress = (progress) => {
-            this.ui.updateWhisperProgress(progress);
-        };
-
-        this.whisperTurboTranscriber.onLoadingChange = (isLoading) => {
-            this.ui.showWhisperLoading(isLoading);
-        };
-    }
-
-    /**
      * Set up UI event listeners
      */
     setupEventListeners() {
-        // Mode selection
-        const modeWebSpeechBtn = document.getElementById('mode-web-speech');
-        const modeTransformersBtn = document.getElementById('mode-transformers');
-        const modeWhisperTurboBtn = document.getElementById('mode-whisper-turbo');
-
-        if (modeWebSpeechBtn) {
-            modeWebSpeechBtn.addEventListener('click', () => {
-                if (!this.isRecording) {
-                    this.switchMode('web-speech');
-                }
-            });
-        }
-
-        if (modeTransformersBtn) {
-            modeTransformersBtn.addEventListener('click', () => {
-                if (!this.isRecording) {
-                    this.switchMode('transformers');
-                }
-            });
-        }
-
-        if (modeWhisperTurboBtn) {
-            modeWhisperTurboBtn.addEventListener('click', () => {
-                if (!this.isRecording) {
-                    this.switchMode('whisper-turbo');
-                }
-            });
-        }
-
         // Control buttons
         const startBtn = document.getElementById('start-btn');
         const stopBtn = document.getElementById('stop-btn');
@@ -228,6 +117,38 @@ class LectureTranscriberApp {
             exportBtn.addEventListener('click', () => this.exportTranscript());
         }
 
+        // AI Summary buttons
+        const generateSummaryBtn = document.getElementById('generate-summary-btn');
+        const editPromptBtn = document.getElementById('edit-prompt-btn');
+        const copySummaryBtn = document.getElementById('copy-summary-btn');
+        const exportSummaryBtn = document.getElementById('export-summary-btn');
+        const resetPromptBtn = document.getElementById('reset-prompt-btn');
+        const savePromptBtn = document.getElementById('save-prompt-btn');
+
+        if (generateSummaryBtn) {
+            generateSummaryBtn.addEventListener('click', () => this.generateSummary());
+        }
+
+        if (editPromptBtn) {
+            editPromptBtn.addEventListener('click', () => this.showPromptEditor());
+        }
+
+        if (copySummaryBtn) {
+            copySummaryBtn.addEventListener('click', () => this.copySummaryToClipboard());
+        }
+
+        if (exportSummaryBtn) {
+            exportSummaryBtn.addEventListener('click', () => this.exportSummary());
+        }
+
+        if (resetPromptBtn) {
+            resetPromptBtn.addEventListener('click', () => this.resetPrompt());
+        }
+
+        if (savePromptBtn) {
+            savePromptBtn.addEventListener('click', () => this.savePromptAndGenerate());
+        }
+
         // Visibility change - re-request wake lock if page becomes visible
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && this.isRecording) {
@@ -237,43 +158,10 @@ class LectureTranscriberApp {
     }
 
     /**
-     * Switch between transcription modes
-     * @param {string} mode - Mode to switch to ('web-speech', 'transformers', or 'whisper-turbo')
-     */
-    switchMode(mode) {
-        if (this.isRecording) {
-            this.ui.showError('Stop recording before switching modes');
-            return;
-        }
-
-        this.currentMode = mode;
-        this.ui.updateModeSelection(mode);
-        Utils.storage.saveMode(mode);
-
-        console.log('Switched to mode:', mode);
-
-        // Show performance warnings
-        const isMobile = Utils.compatibility.isMobile();
-
-        if (mode === 'transformers' && isMobile) {
-            this.ui.showError('Warning: Transformers mode is slow on mobile. Web Speech is faster for live transcription.');
-        } else if (mode === 'whisper-turbo' && isMobile) {
-            this.ui.showError('Warning: Whisper Turbo is slow on mobile. Works better on laptop.');
-        }
-    }
-
-    /**
-     * Get current transcriber based on mode
+     * Get current transcriber
      */
     getCurrentTranscriber() {
-        if (this.currentMode === 'web-speech') {
-            return this.webSpeechTranscriber;
-        } else if (this.currentMode === 'transformers') {
-            return this.transformersTranscriber;
-        } else if (this.currentMode === 'whisper-turbo') {
-            return this.whisperTurboTranscriber;
-        }
-        return null;
+        return this.webSpeechTranscriber;
     }
 
     /**
@@ -425,6 +313,128 @@ class LectureTranscriberApp {
             }
 
             this.ui.updateTranscript({ final: savedTranscript, interim: '' });
+        }
+    }
+
+    /**
+     * Generate AI summary from transcript
+     */
+    async generateSummary() {
+        if (!this.geminiAPI.isConfigured()) {
+            this.ui.showError('Gemini API key not configured. Please check js/config.js');
+            return;
+        }
+
+        const transcriber = this.getCurrentTranscriber();
+        if (!transcriber) return;
+
+        const transcript = transcriber.getTranscript();
+        if (!transcript || transcript.trim().length === 0) {
+            this.ui.showError('No transcript available to summarize');
+            return;
+        }
+
+        // Validate transcript
+        const validation = this.geminiAPI.validateTranscript(transcript);
+        if (!validation.valid) {
+            this.ui.showError(validation.message);
+            return;
+        }
+
+        console.log('Generating AI summary...');
+        this.ui.showSummaryLoading(true);
+
+        try {
+            const summary = await this.geminiAPI.generateSummary(transcript);
+            this.currentSummary = summary;
+            this.ui.updateSummary(summary);
+            this.ui.updateSummaryActionButtons(true);
+            this.ui.showSuccess('Summary generated successfully!');
+            console.log('Summary generated');
+        } catch (error) {
+            console.error('Summary generation failed:', error);
+            this.ui.showSummaryLoading(false);
+            this.ui.showError(`Failed to generate summary: ${error.message}`);
+        }
+    }
+
+    /**
+     * Show prompt editor modal
+     */
+    showPromptEditor() {
+        const currentPrompt = this.geminiAPI.getCurrentPrompt();
+        this.ui.showPromptModal(currentPrompt);
+    }
+
+    /**
+     * Reset prompt to default
+     */
+    resetPrompt() {
+        this.geminiAPI.resetPrompt();
+        const defaultPrompt = this.geminiAPI.getDefaultPrompt();
+        this.ui.showPromptModal(defaultPrompt);
+        this.ui.showSuccess('Prompt reset to default');
+    }
+
+    /**
+     * Save edited prompt and generate summary
+     */
+    async savePromptAndGenerate() {
+        const editedPrompt = this.ui.getEditedPrompt();
+
+        if (!editedPrompt || editedPrompt.trim().length === 0) {
+            this.ui.showError('Prompt cannot be empty');
+            return;
+        }
+
+        if (!editedPrompt.includes('{TRANSCRIPT}')) {
+            this.ui.showError('Prompt must include {TRANSCRIPT} placeholder');
+            return;
+        }
+
+        try {
+            this.geminiAPI.setCustomPrompt(editedPrompt);
+            this.ui.hidePromptModal();
+            this.ui.showSuccess('Prompt saved!');
+
+            // Generate summary with new prompt
+            await this.generateSummary();
+        } catch (error) {
+            this.ui.showError(error.message);
+        }
+    }
+
+    /**
+     * Copy summary to clipboard
+     */
+    async copySummaryToClipboard() {
+        if (!this.currentSummary || this.currentSummary.trim().length === 0) {
+            this.ui.showError('No summary to copy');
+            return;
+        }
+
+        const success = await Utils.copyToClipboard(this.currentSummary);
+        if (success) {
+            this.ui.showSuccess('Summary copied to clipboard!');
+        } else {
+            this.ui.showError('Failed to copy summary');
+        }
+    }
+
+    /**
+     * Export summary as text file
+     */
+    exportSummary() {
+        if (!this.currentSummary || this.currentSummary.trim().length === 0) {
+            this.ui.showError('No summary to export');
+            return;
+        }
+
+        const success = Utils.exportAsTextFile(this.currentSummary, 'transcript-summary.txt');
+        if (success) {
+            this.ui.showSuccess('Summary exported!');
+        } else {
+            this.ui.showError('Failed to export summary');
         }
     }
 }

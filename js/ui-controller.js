@@ -31,6 +31,8 @@ class UIController {
             // Transcript
             transcriptContainer: document.getElementById('transcript-container'),
             transcriptText: document.getElementById('transcript-text'),
+            wordCount: document.getElementById('word-count'),
+            togglePreviewBtn: document.getElementById('toggle-preview-btn'),
 
             // Actions
             copyBtn: document.getElementById('copy-btn'),
@@ -53,11 +55,29 @@ class UIController {
             // Whisper specific
             whisperLoading: document.getElementById('whisper-loading'),
             progressFill: document.getElementById('progress-fill'),
-            progressText: document.getElementById('progress-text')
+            progressText: document.getElementById('progress-text'),
+
+            // AI Summary
+            generateSummaryBtn: document.getElementById('generate-summary-btn'),
+            editPromptBtn: document.getElementById('edit-prompt-btn'),
+            summaryContainer: document.getElementById('summary-container'),
+            summaryText: document.getElementById('summary-text'),
+            copySummaryBtn: document.getElementById('copy-summary-btn'),
+            exportSummaryBtn: document.getElementById('export-summary-btn'),
+            summaryLoading: document.getElementById('summary-loading'),
+
+            // Prompt Modal
+            promptModal: document.getElementById('prompt-modal'),
+            closePromptModal: document.getElementById('close-prompt-modal'),
+            promptTextarea: document.getElementById('prompt-textarea'),
+            resetPromptBtn: document.getElementById('reset-prompt-btn'),
+            savePromptBtn: document.getElementById('save-prompt-btn')
         };
 
         this.setupEventListeners();
         this.currentMode = 'web-speech';
+        this.isPreviewMode = false;
+        this.fullTranscript = { final: '', interim: '' };
     }
 
     /**
@@ -75,6 +95,23 @@ class UIController {
             this.elements.helpModal.addEventListener('click', (e) => {
                 if (e.target === this.elements.helpModal) {
                     this.hideHelp();
+                }
+            });
+        }
+
+        // Preview toggle
+        if (this.elements.togglePreviewBtn) {
+            this.elements.togglePreviewBtn.addEventListener('click', () => this.togglePreview());
+        }
+
+        // Prompt modal
+        if (this.elements.closePromptModal) {
+            this.elements.closePromptModal.addEventListener('click', () => this.hidePromptModal());
+        }
+        if (this.elements.promptModal) {
+            this.elements.promptModal.addEventListener('click', (e) => {
+                if (e.target === this.elements.promptModal) {
+                    this.hidePromptModal();
                 }
             });
         }
@@ -144,6 +181,12 @@ class UIController {
         const finalText = transcript.final || '';
         const interimText = transcript.interim || '';
 
+        // Store full transcript
+        this.fullTranscript = { final: finalText, interim: interimText };
+
+        // Update word count
+        this.updateWordCount(finalText);
+
         // Check if empty
         if (finalText.length === 0 && interimText.length === 0) {
             this.elements.transcriptText.innerHTML = 'Your transcription will appear here...';
@@ -153,13 +196,22 @@ class UIController {
 
         this.elements.transcriptText.classList.remove('empty');
 
+        // Get text to display based on preview mode
+        let displayFinalText = finalText;
+        if (this.isPreviewMode && finalText) {
+            displayFinalText = this.getLastWords(finalText, 20);
+        }
+
         // Build HTML with final text and interim text
         let html = '';
-        if (finalText) {
-            html += `<span>${this.escapeHtml(finalText)}</span>`;
+        if (displayFinalText) {
+            if (this.isPreviewMode && finalText.split(/\s+/).filter(w => w.length > 0).length > 20) {
+                html += `<span class="preview-ellipsis">... </span>`;
+            }
+            html += `<span>${this.escapeHtml(displayFinalText)}</span>`;
         }
         if (interimText) {
-            if (finalText && !finalText.endsWith(' ')) {
+            if (displayFinalText && !displayFinalText.endsWith(' ')) {
                 html += ' ';
             }
             html += `<span class="interim-text">${this.escapeHtml(interimText)}</span>`;
@@ -413,6 +465,130 @@ class UIController {
      */
     showSuccess(message) {
         Utils.toast.show(message, 'success', 3000);
+    }
+
+    /**
+     * Update word count display
+     * @param {string} text - Text to count words from
+     */
+    updateWordCount(text) {
+        if (!this.elements.wordCount) return;
+
+        const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+        const count = words.length;
+
+        this.elements.wordCount.textContent = `${count} word${count !== 1 ? 's' : ''}`;
+    }
+
+    /**
+     * Get last N words from text
+     * @param {string} text - Full text
+     * @param {number} n - Number of words to get
+     * @returns {string} - Last N words
+     */
+    getLastWords(text, n) {
+        const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+        if (words.length <= n) {
+            return text;
+        }
+        return words.slice(-n).join(' ');
+    }
+
+    /**
+     * Toggle between preview and full text mode
+     */
+    togglePreview() {
+        this.isPreviewMode = !this.isPreviewMode;
+
+        // Update button appearance
+        if (this.elements.togglePreviewBtn) {
+            if (this.isPreviewMode) {
+                this.elements.togglePreviewBtn.classList.add('active');
+                this.elements.togglePreviewBtn.textContent = 'Full Text';
+            } else {
+                this.elements.togglePreviewBtn.classList.remove('active');
+                this.elements.togglePreviewBtn.textContent = 'Preview';
+            }
+        }
+
+        // Re-render transcript with new mode
+        this.updateTranscript(this.fullTranscript);
+    }
+
+    /**
+     * Show summary loading state
+     * @param {boolean} show - Whether to show loading
+     */
+    showSummaryLoading(show) {
+        if (this.elements.summaryLoading) {
+            if (show) {
+                this.elements.summaryLoading.classList.remove('hidden');
+                this.elements.summaryContainer.classList.add('hidden');
+            } else {
+                this.elements.summaryLoading.classList.add('hidden');
+            }
+        }
+
+        // Disable buttons while loading
+        if (this.elements.generateSummaryBtn) {
+            this.elements.generateSummaryBtn.disabled = show;
+        }
+        if (this.elements.editPromptBtn) {
+            this.elements.editPromptBtn.disabled = show;
+        }
+    }
+
+    /**
+     * Update summary display
+     * @param {string} summary - Generated summary text
+     */
+    updateSummary(summary) {
+        if (!this.elements.summaryText || !this.elements.summaryContainer) return;
+
+        this.elements.summaryText.textContent = summary;
+        this.elements.summaryContainer.classList.remove('hidden');
+        this.showSummaryLoading(false);
+    }
+
+    /**
+     * Show prompt edit modal
+     * @param {string} currentPrompt - Current prompt text
+     */
+    showPromptModal(currentPrompt) {
+        if (!this.elements.promptModal || !this.elements.promptTextarea) return;
+
+        this.elements.promptTextarea.value = currentPrompt;
+        this.elements.promptModal.classList.remove('hidden');
+    }
+
+    /**
+     * Hide prompt edit modal
+     */
+    hidePromptModal() {
+        if (this.elements.promptModal) {
+            this.elements.promptModal.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Get edited prompt from modal
+     * @returns {string} - Edited prompt text
+     */
+    getEditedPrompt() {
+        return this.elements.promptTextarea?.value || '';
+    }
+
+    /**
+     * Update summary action button states
+     * @param {boolean} hasSummary - Whether there is a summary to copy/export
+     */
+    updateSummaryActionButtons(hasSummary) {
+        if (this.elements.copySummaryBtn) {
+            this.elements.copySummaryBtn.disabled = !hasSummary;
+        }
+        if (this.elements.exportSummaryBtn) {
+            this.elements.exportSummaryBtn.disabled = !hasSummary;
+        }
     }
 }
 
