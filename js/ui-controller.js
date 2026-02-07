@@ -548,7 +548,12 @@ class UIController {
     updateSummary(summary) {
         if (!this.elements.summaryText || !this.elements.summaryContainer) return;
 
-        this.elements.summaryText.textContent = summary;
+        // Render markdown if marked library is available
+        if (typeof marked !== 'undefined') {
+            this.elements.summaryText.innerHTML = marked.parse(summary);
+        } else {
+            this.elements.summaryText.textContent = summary;
+        }
         this.elements.summaryContainer.classList.remove('hidden');
         this.showSummaryLoading(false);
     }

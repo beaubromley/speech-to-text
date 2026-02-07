@@ -10,6 +10,9 @@ class LectureTranscriberApp {
         this.isRecording = false;
         this.geminiAPI = new GeminiAPI();
         this.currentSummary = '';
+        this.vuMeter = new VUMeter('vu-meter');
+        this.wordCloud = new WordCloud('word-cloud-container');
+        this.recordingStartTime = null;
 
         // Auto-save debounced
         this.autoSave = Utils.debounce((text) => {
@@ -34,8 +37,12 @@ class LectureTranscriberApp {
             this.setupWebSpeechCallbacks();
         }
 
-        // Restore saved transcript
+        // Restore saved transcript and summary
         this.restoreTranscript();
+        this.restoreSummary();
+
+        // Restore auto-summary preference
+        this.initAutoSummaryToggle();
 
         // Set up event listeners
         this.setupEventListeners();
@@ -75,6 +82,11 @@ class LectureTranscriberApp {
             // Auto-save final transcript
             if (transcript.final) {
                 this.autoSave(transcript.final);
+                // Update word cloud if visible
+                const wcSection = document.getElementById('word-cloud-section');
+                if (wcSection && !wcSection.classList.contains('hidden')) {
+                    this.wordCloud.update(transcript.final);
+                }
             }
         };
 
@@ -120,6 +132,28 @@ class LectureTranscriberApp {
             exportBtn.addEventListener('click', () => this.exportTranscript());
         }
 
+        // Word cloud toggles
+        const showWordcloudBtn = document.getElementById('show-wordcloud-btn');
+        const toggleWordcloudBtn = document.getElementById('toggle-wordcloud-btn');
+        if (showWordcloudBtn) {
+            showWordcloudBtn.addEventListener('click', () => this.toggleWordCloud());
+        }
+        if (toggleWordcloudBtn) {
+            toggleWordcloudBtn.addEventListener('click', () => this.toggleWordCloud());
+        }
+
+        // Share button
+        const shareBtn = document.getElementById('share-btn');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', () => this.shareTranscript());
+        }
+
+        // Mark timestamp button
+        const markBtn = document.getElementById('mark-btn');
+        if (markBtn) {
+            markBtn.addEventListener('click', () => this.insertTimestamp());
+        }
+
         // AI Summary buttons
         const generateSummaryBtn = document.getElementById('generate-summary-btn');
         const editPromptBtn = document.getElementById('edit-prompt-btn');
@@ -150,6 +184,18 @@ class LectureTranscriberApp {
 
         if (savePromptBtn) {
             savePromptBtn.addEventListener('click', () => this.savePromptAndGenerate());
+        }
+
+        // Follow-up question
+        const followupSendBtn = document.getElementById('followup-send-btn');
+        const followupInput = document.getElementById('followup-input');
+        if (followupSendBtn) {
+            followupSendBtn.addEventListener('click', () => this.sendFollowUp());
+        }
+        if (followupInput) {
+            followupInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') this.sendFollowUp();
+            });
         }
 
         // Visibility change - re-request wake lock if page becomes visible
@@ -194,6 +240,15 @@ class LectureTranscriberApp {
             this.isRecording = true;
             this.ui.updateRecordingButtons(true);
             this.ui.updateStatus('recording');
+            // Spin cassette reels
+            const reels = document.getElementById('cassette-reels');
+            if (reels) reels.classList.add('recording');
+            // Start VU meter
+            this.vuMeter.start();
+            // Track recording start time and show mark button
+            this.recordingStartTime = Date.now();
+            const markBtn = document.getElementById('mark-btn');
+            if (markBtn) markBtn.classList.remove('hidden');
             console.log('Recording started');
         } else {
             this.ui.showError('Failed to start recording. Please check microphone permissions.');
@@ -218,11 +273,48 @@ class LectureTranscriberApp {
         this.isRecording = false;
         this.ui.updateRecordingButtons(false);
         this.ui.updateStatus('stopped');
+        // Stop cassette reels, VU meter, and hide mark button
+        const reels = document.getElementById('cassette-reels');
+        if (reels) reels.classList.remove('recording');
+        this.vuMeter.stop();
+        const markBtn = document.getElementById('mark-btn');
+        if (markBtn) markBtn.classList.add('hidden');
+        this.recordingStartTime = null;
 
         // Release wake lock
         await Utils.wakeLock.release();
 
         console.log('Recording stopped');
+
+        // Auto-summarize if enabled
+        const autoSummaryCheckbox = document.getElementById('auto-summary-checkbox');
+        if (autoSummaryCheckbox && autoSummaryCheckbox.checked) {
+            this.generateSummary();
+        }
+    }
+
+    /**
+     * Insert a timestamp marker into the transcript
+     */
+    insertTimestamp() {
+        if (!this.isRecording || !this.recordingStartTime) return;
+
+        const elapsed = Date.now() - this.recordingStartTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        const timestamp = `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}]`;
+
+        const transcriber = this.getCurrentTranscriber();
+        if (transcriber && transcriber.finalTranscript !== undefined) {
+            if (transcriber.finalTranscript.length > 0 && !transcriber.finalTranscript.endsWith(' ')) {
+                transcriber.finalTranscript += ' ';
+            }
+            transcriber.finalTranscript += timestamp + ' ';
+            this.ui.updateTranscript({ final: transcriber.finalTranscript, interim: transcriber.interimTranscript || '' });
+            this.autoSave(transcriber.finalTranscript);
+        }
+
+        this.ui.showSuccess(`Marked at ${timestamp}`);
     }
 
     /**
@@ -252,6 +344,7 @@ class LectureTranscriberApp {
 
         // Clear from storage
         Utils.storage.clearTranscript();
+        Utils.storage.clearSummary();
 
         // Update UI
         this.ui.updateTranscript({ final: '', interim: '' });
@@ -265,6 +358,9 @@ class LectureTranscriberApp {
 
         // Reset prompt to default
         this.geminiAPI.resetPrompt();
+
+        // Clear follow-up thread
+        this.hideFollowUpSection();
 
         this.ui.showSuccess('All cleared and reset');
 
@@ -314,6 +410,64 @@ class LectureTranscriberApp {
     }
 
     /**
+     * Share transcript using Web Share API or clipboard fallback
+     */
+    async shareTranscript() {
+        const transcriber = this.getCurrentTranscriber();
+        if (!transcriber) return;
+
+        const text = transcriber.getTranscript();
+        if (!text || text.trim().length === 0) {
+            this.ui.showError('No transcript to share');
+            return;
+        }
+
+        // Build share content
+        let shareText = text;
+        if (this.currentSummary) {
+            shareText = `--- SUMMARY ---\n${this.currentSummary}\n\n--- TRANSCRIPT ---\n${text}`;
+        }
+
+        // Try Web Share API (mobile-friendly)
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Speech-to-Text Transcript',
+                    text: shareText
+                });
+                this.ui.showSuccess('Shared!');
+                return;
+            } catch (error) {
+                if (error.name === 'AbortError') return; // User cancelled
+                console.error('Share failed:', error);
+            }
+        }
+
+        // Fallback: copy to clipboard
+        const success = await Utils.copyToClipboard(shareText);
+        if (success) {
+            this.ui.showSuccess('Copied to clipboard for sharing!');
+        } else {
+            this.ui.showError('Failed to share');
+        }
+    }
+
+    /**
+     * Toggle word cloud visibility and update it
+     */
+    toggleWordCloud() {
+        const section = document.getElementById('word-cloud-section');
+        if (!section) return;
+
+        const isHidden = section.classList.toggle('hidden');
+        if (!isHidden) {
+            const transcriber = this.getCurrentTranscriber();
+            const text = transcriber ? transcriber.getTranscript() : '';
+            this.wordCloud.update(text);
+        }
+    }
+
+    /**
      * Restore transcript from storage
      */
     restoreTranscript() {
@@ -328,6 +482,99 @@ class LectureTranscriberApp {
 
             this.ui.updateTranscript({ final: savedTranscript, interim: '' });
         }
+    }
+
+    /**
+     * Initialize auto-summary toggle from saved preference
+     */
+    initAutoSummaryToggle() {
+        const checkbox = document.getElementById('auto-summary-checkbox');
+        if (!checkbox) return;
+
+        checkbox.checked = Utils.storage.loadAutoSummary();
+        checkbox.addEventListener('change', () => {
+            Utils.storage.saveAutoSummary(checkbox.checked);
+        });
+    }
+
+    /**
+     * Restore summary from storage
+     */
+    restoreSummary() {
+        const savedSummary = Utils.storage.loadSummary();
+        if (savedSummary && savedSummary.trim().length > 0) {
+            console.log('Restoring saved summary...');
+            this.currentSummary = savedSummary;
+            this.ui.updateSummary(savedSummary);
+            this.ui.updateSummaryActionButtons(true);
+            this.showFollowUpSection();
+        }
+    }
+
+    /**
+     * Show the follow-up questions section
+     */
+    showFollowUpSection() {
+        const section = document.getElementById('followup-section');
+        if (section) section.classList.remove('hidden');
+    }
+
+    /**
+     * Hide the follow-up questions section
+     */
+    hideFollowUpSection() {
+        const section = document.getElementById('followup-section');
+        if (section) section.classList.add('hidden');
+        const thread = document.getElementById('followup-thread');
+        if (thread) thread.innerHTML = '';
+    }
+
+    /**
+     * Send a follow-up question
+     */
+    async sendFollowUp() {
+        const input = document.getElementById('followup-input');
+        const thread = document.getElementById('followup-thread');
+        if (!input || !thread) return;
+
+        const question = input.value.trim();
+        if (!question) return;
+
+        const transcriber = this.getCurrentTranscriber();
+        const transcript = transcriber ? transcriber.getTranscript() : '';
+
+        if (!this.currentSummary) {
+            this.ui.showError('Generate a summary first');
+            return;
+        }
+
+        // Show user message
+        const userMsg = document.createElement('div');
+        userMsg.className = 'followup-msg user';
+        userMsg.textContent = question;
+        thread.appendChild(userMsg);
+        input.value = '';
+
+        // Show loading
+        const loadingMsg = document.createElement('div');
+        loadingMsg.className = 'followup-msg ai';
+        loadingMsg.textContent = 'Thinking...';
+        thread.appendChild(loadingMsg);
+        thread.scrollTop = thread.scrollHeight;
+
+        try {
+            const response = await this.geminiAPI.askFollowUp(transcript, this.currentSummary, question);
+            if (typeof marked !== 'undefined') {
+                loadingMsg.innerHTML = marked.parse(response);
+            } else {
+                loadingMsg.textContent = response;
+            }
+        } catch (error) {
+            loadingMsg.textContent = `Error: ${error.message}`;
+            loadingMsg.style.color = '#ff5548';
+        }
+
+        thread.scrollTop = thread.scrollHeight;
     }
 
     /**
@@ -361,9 +608,11 @@ class LectureTranscriberApp {
         try {
             const summary = await this.geminiAPI.generateSummary(transcript);
             this.currentSummary = summary;
+            Utils.storage.saveSummary(summary);
             this.ui.updateSummary(summary);
             this.ui.updateSummaryActionButtons(true);
             this.ui.showSuccess('Summary generated successfully!');
+            this.showFollowUpSection();
             console.log('Summary generated');
         } catch (error) {
             console.error('Summary generation failed:', error);

@@ -141,7 +141,9 @@ const Utils = {
      */
     storage: {
         TRANSCRIPT_KEY: 'speech-to-text-transcript',
+        SUMMARY_KEY: 'speech-to-text-summary',
         MODE_KEY: 'speech-to-text-mode',
+        AUTO_SUMMARY_KEY: 'speech-to-text-auto-summary',
 
         /**
          * Save transcript to localStorage
@@ -167,6 +169,46 @@ const Utils = {
             } catch (error) {
                 console.error('Error loading from localStorage:', error);
                 return '';
+            }
+        },
+
+        /**
+         * Save summary to localStorage
+         * @param {string} text - Summary text
+         */
+        saveSummary(text) {
+            try {
+                localStorage.setItem(this.SUMMARY_KEY, text);
+                return true;
+            } catch (error) {
+                console.error('Error saving summary to localStorage:', error);
+                return false;
+            }
+        },
+
+        /**
+         * Load summary from localStorage
+         * @returns {string} - Saved summary or empty string
+         */
+        loadSummary() {
+            try {
+                return localStorage.getItem(this.SUMMARY_KEY) || '';
+            } catch (error) {
+                console.error('Error loading summary from localStorage:', error);
+                return '';
+            }
+        },
+
+        /**
+         * Clear summary from localStorage
+         */
+        clearSummary() {
+            try {
+                localStorage.removeItem(this.SUMMARY_KEY);
+                return true;
+            } catch (error) {
+                console.error('Error clearing summary from localStorage:', error);
+                return false;
             }
         },
 
@@ -207,6 +249,32 @@ const Utils = {
             } catch (error) {
                 console.error('Error loading mode:', error);
                 return 'web-speech';
+            }
+        },
+
+        /**
+         * Save auto-summary preference
+         * @param {boolean} enabled
+         */
+        saveAutoSummary(enabled) {
+            try {
+                localStorage.setItem(this.AUTO_SUMMARY_KEY, JSON.stringify(enabled));
+                return true;
+            } catch (error) {
+                console.error('Error saving auto-summary preference:', error);
+                return false;
+            }
+        },
+
+        /**
+         * Load auto-summary preference
+         * @returns {boolean}
+         */
+        loadAutoSummary() {
+            try {
+                return JSON.parse(localStorage.getItem(this.AUTO_SUMMARY_KEY)) || false;
+            } catch (error) {
+                return false;
             }
         }
     },

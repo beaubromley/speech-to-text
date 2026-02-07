@@ -21,6 +21,7 @@
                 <span id="status-dot" class="status-dot"></span>
                 <span id="status-text" class="status-text">Ready</span>
             </div>
+            <div id="vu-meter" class="vu-meter"></div>
         </section>
 
         <!-- Control Buttons -->
@@ -31,9 +32,53 @@
             <button id="stop-btn" class="control-btn secondary hidden">
                 STOP
             </button>
+            <button id="mark-btn" class="control-btn mark-btn hidden">
+                MARK
+            </button>
             <button id="clear-btn" class="control-btn danger">
                 CLEAR ALL
             </button>
+        </section>
+
+        <!-- Cassette Tape Reels -->
+        <section id="cassette-reels" class="cassette-reels">
+            <div class="cassette-window">
+                <svg class="tape-reel reel-left" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#444" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="20" fill="none" stroke="#444" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="6" fill="#555"/>
+                    <!-- Spokes -->
+                    <line x1="50" y1="5" x2="50" y2="30" stroke="#444" stroke-width="2"/>
+                    <line x1="50" y1="70" x2="50" y2="95" stroke="#444" stroke-width="2"/>
+                    <line x1="5" y1="50" x2="30" y2="50" stroke="#444" stroke-width="2"/>
+                    <line x1="70" y1="50" x2="95" y2="50" stroke="#444" stroke-width="2"/>
+                    <line x1="18" y1="18" x2="36" y2="36" stroke="#444" stroke-width="2"/>
+                    <line x1="64" y1="64" x2="82" y2="82" stroke="#444" stroke-width="2"/>
+                    <line x1="82" y1="18" x2="64" y2="36" stroke="#444" stroke-width="2"/>
+                    <line x1="36" y1="64" x2="18" y2="82" stroke="#444" stroke-width="2"/>
+                    <!-- Tape ring -->
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="#333" stroke-width="8" opacity="0.5"/>
+                </svg>
+                <div class="tape-bridge">
+                    <div class="tape-line"></div>
+                </div>
+                <svg class="tape-reel reel-right" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#444" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="20" fill="none" stroke="#444" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="6" fill="#555"/>
+                    <!-- Spokes -->
+                    <line x1="50" y1="5" x2="50" y2="30" stroke="#444" stroke-width="2"/>
+                    <line x1="50" y1="70" x2="50" y2="95" stroke="#444" stroke-width="2"/>
+                    <line x1="5" y1="50" x2="30" y2="50" stroke="#444" stroke-width="2"/>
+                    <line x1="70" y1="50" x2="95" y2="50" stroke="#444" stroke-width="2"/>
+                    <line x1="18" y1="18" x2="36" y2="36" stroke="#444" stroke-width="2"/>
+                    <line x1="64" y1="64" x2="82" y2="82" stroke="#444" stroke-width="2"/>
+                    <line x1="82" y1="18" x2="64" y2="36" stroke="#444" stroke-width="2"/>
+                    <line x1="36" y1="64" x2="18" y2="82" stroke="#444" stroke-width="2"/>
+                    <!-- Tape ring -->
+                    <circle cx="50" cy="50" r="32" fill="none" stroke="#333" stroke-width="14" opacity="0.5"/>
+                </svg>
+            </div>
         </section>
 
         <!-- Transcript Display -->
@@ -43,6 +88,7 @@
                 <div class="transcript-info">
                     <span id="word-count" class="word-count">0 words</span>
                     <button id="toggle-preview-btn" class="toggle-preview-btn">Preview</button>
+                    <button id="show-wordcloud-btn" class="toggle-preview-btn">Cloud</button>
                 </div>
             </div>
             <div id="transcript-container" class="transcript-container">
@@ -50,19 +96,38 @@
             </div>
         </section>
 
+        <!-- Word Cloud -->
+        <section class="word-cloud-section hidden" id="word-cloud-section">
+            <div class="word-cloud-header">
+                <h2>Word Cloud</h2>
+                <button id="toggle-wordcloud-btn" class="toggle-preview-btn">Hide</button>
+            </div>
+            <div id="word-cloud-container" class="word-cloud-container"></div>
+        </section>
+
         <!-- Action Buttons -->
-        <section class="actions">
+        <section class="actions actions-3col">
             <button id="copy-btn" class="action-btn">
-                Copy to Clipboard
+                Copy
             </button>
             <button id="export-btn" class="action-btn">
-                Export as Text
+                Export
+            </button>
+            <button id="share-btn" class="action-btn">
+                Share
             </button>
         </section>
 
         <!-- AI Summary Section -->
         <section class="ai-summary-section">
-            <h2>AI Summary</h2>
+            <div class="ai-summary-header">
+                <h2>AI Summary</h2>
+                <label class="auto-summary-toggle">
+                    <input type="checkbox" id="auto-summary-checkbox">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">Auto</span>
+                </label>
+            </div>
             <div class="summary-controls">
                 <button id="generate-summary-btn" class="action-btn">
                     Generate Summary
@@ -91,6 +156,15 @@
             <div id="summary-loading" class="summary-loading hidden">
                 <div class="loading-spinner"></div>
                 <p>Generating summary...</p>
+            </div>
+
+            <!-- Follow-up Questions -->
+            <div id="followup-section" class="followup-section hidden">
+                <div id="followup-thread" class="followup-thread"></div>
+                <div class="followup-input-row">
+                    <input type="text" id="followup-input" class="followup-input" placeholder="Ask a follow-up question..." />
+                    <button id="followup-send-btn" class="control-btn primary followup-send-btn">ASK</button>
+                </div>
             </div>
         </section>
 
@@ -162,11 +236,16 @@
         <p id="toast-message"></p>
     </div>
 
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <!-- Scripts -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/gemini-api.js"></script>
     <script src="js/ui-controller.js"></script>
+    <script src="js/vu-meter.js"></script>
+    <script src="js/word-cloud.js"></script>
     <script src="js/audio-processor.js"></script>
     <script src="js/web-speech.js"></script>
     <script src="js/app.js"></script>

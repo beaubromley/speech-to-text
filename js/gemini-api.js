@@ -18,8 +18,9 @@ class GeminiAPI {
     getDefaultPrompt() {
         return `You are an intelligent assistant analyzing a transcript. Your task is to:
 
-1. First, determine what type of content this is (meeting, presentation, lecture, interview, conversation, etc.)
-2. Then provide an appropriate summary based on the content type:
+1. First, provide a TL;DR — a 1-2 sentence summary of the entire transcript.
+2. Determine what type of content this is (meeting, presentation, lecture, interview, conversation, etc.)
+3. Then provide an appropriate detailed summary based on the content type:
 
 For MEETINGS:
 - Brief overview of the meeting
@@ -44,7 +45,12 @@ For CONVERSATIONS/OTHER:
 - Main topics discussed
 - Key points or conclusions
 
-Format your response clearly with appropriate headings and bullet points. Be concise but comprehensive.
+SPEAKER IDENTIFICATION:
+- If you can identify distinct speakers (by name, role, or vocal cues mentioned in transcript), include a "## Speakers" section listing each speaker and their role/context.
+- Throughout the summary, attribute key points and quotes to specific speakers when possible (e.g., "**John** suggested..." or "**Speaker 1** noted...").
+- If only one speaker is apparent, skip the Speakers section.
+
+Start your response with a "## TL;DR" section, then "## Speakers" (if multiple), then follow with the detailed summary under appropriate headings. Format your response clearly with headings and bullet points. Be concise but comprehensive.
 
 Here is the transcript to analyze:
 
@@ -144,6 +150,65 @@ Here is the transcript to analyze:
 
         } catch (error) {
             console.error('Gemini API Error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Ask a follow-up question about the transcript
+     * @param {string} transcript - The original transcript
+     * @param {string} summary - The generated summary
+     * @param {string} question - The user's follow-up question
+     * @returns {Promise<string>} - AI response
+     */
+    async askFollowUp(transcript, summary, question) {
+        if (!this.isConfigured()) {
+            throw new Error('Gemini API key not configured');
+        }
+
+        const prompt = `You previously analyzed this transcript and produced the summary below. Now answer the user's follow-up question.
+
+TRANSCRIPT:
+${transcript}
+
+YOUR PREVIOUS SUMMARY:
+${summary}
+
+USER'S QUESTION:
+${question}
+
+Answer concisely and directly. Use markdown formatting.`;
+
+        const requestBody = {
+            contents: [{
+                parts: [{
+                    text: prompt
+                }]
+            }],
+            generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 4096,
+            }
+        };
+
+        try {
+            const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error?.message || `API request failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
+        } catch (error) {
+            console.error('Gemini Follow-up Error:', error);
             throw error;
         }
     }

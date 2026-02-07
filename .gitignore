@@ -4,3 +4,6 @@ test.html
 
 # API Keys (do not commit)
 js/config.js
+
+# Conversation logs (private)
+conversation-log.md
