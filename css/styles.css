@@ -3,7 +3,7 @@
    ============================================ */
 
 /* Import retro-style font */
-@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bungee&family=Russo+One&family=Share+Tech+Mono&display=swap');
 
 /* Reset and Base Styles */
 * {
@@ -38,14 +38,26 @@ header {
 }
 
 header h1 {
-    font-family: 'Russo One', sans-serif;
-    font-size: 1.6rem;
-    font-weight: 900;
-    letter-spacing: 3px;
+    font-family: 'Bungee', 'Russo One', sans-serif;
+    font-size: 2rem;
+    font-weight: 400;
+    letter-spacing: 4px;
     text-transform: uppercase;
     color: #2a2d30;
-    text-shadow: 1px 1px 0 rgba(255,255,255,0.4);
-    font-style: italic;
+    text-shadow:
+        1px 1px 0 rgba(255,255,255,0.5),
+        2px 2px 0 rgba(0,0,0,0.15);
+    line-height: 1.1;
+}
+
+header h1 .title-accent {
+    display: block;
+    font-size: 0.55em;
+    letter-spacing: 6px;
+    color: #d4a017;
+    text-shadow:
+        1px 1px 0 rgba(0,0,0,0.3),
+        0 0 8px rgba(212,160,23,0.3);
 }
 
 .icon-btn {
