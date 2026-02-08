@@ -39,6 +39,7 @@ header {
 
 .header-logo {
     max-height: 100px;
+    max-width: 90%;
     width: auto;
     display: block;
     margin: 0 auto;
