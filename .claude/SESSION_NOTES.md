@@ -2,8 +2,9 @@
 
 ## Current State
 - Feature-rich web app for real-time speech transcription with Talkboy theme
-- 9 new features implemented this session (not yet committed)
+- 12 features implemented and committed/pushed
 - Git remote: https://github.com/beaubromley/speech-to-text
+- Latest commit: `72ab620` on `main` (pushed to origin)
 
 ## File Structure
 ```
@@ -63,10 +64,10 @@ speech-to-text/
 - Follow-up thread is DOM-only (not persisted to localStorage)
 - Cassette reels toggle via `.recording` class on `#cassette-reels` section
 
-## Uncommitted Changes
-- Modified: `index.html`, `css/styles.css`, `js/app.js`, `js/gemini-api.js`, `js/ui-controller.js`, `js/utils.js`
-- New files: `js/vu-meter.js`, `js/word-cloud.js`
-- `.gitignore` is staged
+## Git Status
+- All changes committed and pushed to origin/main
+- Commit `72ab620`: "Add Talkboy theme, AI enhancements, and interactive features"
+- Working tree clean
 
 ## Important Decisions
 - Used `marked` library via CDN for markdown rendering (no build step needed)
@@ -76,7 +77,6 @@ speech-to-text/
 - Talkboy theme uses Russo One + Share Tech Mono Google Fonts
 
 ## Next Steps
-- Commit all changes
 - Test on mobile (especially VU meter, share button, cassette reels sizing)
 - Consider: dark/light mode toggle ("Talkgirl" pink theme variant)
 

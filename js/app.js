@@ -44,6 +44,9 @@ class LectureTranscriberApp {
         // Restore auto-summary preference
         this.initAutoSummaryToggle();
 
+        // Initialize theme toggle
+        this.initThemeToggle();
+
         // Set up event listeners
         this.setupEventListeners();
 
@@ -698,6 +701,47 @@ class LectureTranscriberApp {
             this.ui.showSuccess('Summary exported!');
         } else {
             this.ui.showError('Failed to export summary');
+        }
+    }
+
+    /**
+     * Initialize theme toggle from saved preference
+     */
+    initThemeToggle() {
+        const savedTheme = Utils.storage.loadTheme();
+        this.applyTheme(savedTheme);
+
+        const toggleBtn = document.getElementById('theme-toggle-btn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => this.toggleTheme());
+        }
+    }
+
+    /**
+     * Toggle between talkboy and pro themes
+     */
+    toggleTheme() {
+        const current = document.body.getAttribute('data-theme');
+        const newTheme = current === 'pro' ? 'talkboy' : 'pro';
+        this.applyTheme(newTheme);
+        Utils.storage.saveTheme(newTheme);
+    }
+
+    /**
+     * Apply a theme to the page
+     * @param {string} theme - 'talkboy' or 'pro'
+     */
+    applyTheme(theme) {
+        if (theme === 'pro') {
+            document.body.setAttribute('data-theme', 'pro');
+        } else {
+            document.body.removeAttribute('data-theme');
+        }
+
+        // Update meta theme-color for mobile browser chrome
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+            metaThemeColor.setAttribute('content', theme === 'pro' ? '#ffffff' : '#a8acb0');
         }
     }
 

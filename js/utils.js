@@ -144,6 +144,7 @@ const Utils = {
         SUMMARY_KEY: 'speech-to-text-summary',
         MODE_KEY: 'speech-to-text-mode',
         AUTO_SUMMARY_KEY: 'speech-to-text-auto-summary',
+        THEME_KEY: 'speech-to-text-theme',
 
         /**
          * Save transcript to localStorage
@@ -275,6 +276,32 @@ const Utils = {
                 return JSON.parse(localStorage.getItem(this.AUTO_SUMMARY_KEY)) || false;
             } catch (error) {
                 return false;
+            }
+        },
+
+        /**
+         * Save theme preference
+         * @param {string} theme - 'talkboy' or 'pro'
+         */
+        saveTheme(theme) {
+            try {
+                localStorage.setItem(this.THEME_KEY, theme);
+                return true;
+            } catch (error) {
+                console.error('Error saving theme:', error);
+                return false;
+            }
+        },
+
+        /**
+         * Load theme preference
+         * @returns {string} - 'talkboy' or 'pro'
+         */
+        loadTheme() {
+            try {
+                return localStorage.getItem(this.THEME_KEY) || 'talkboy';
+            } catch (error) {
+                return 'talkboy';
             }
         }
     },
