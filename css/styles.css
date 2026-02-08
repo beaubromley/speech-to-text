@@ -37,27 +37,11 @@ header {
         0 4px 8px rgba(0,0,0,0.4);
 }
 
-header h1 {
-    font-family: 'Bungee', 'Russo One', sans-serif;
-    font-size: 2rem;
-    font-weight: 400;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: #2a2d30;
-    text-shadow:
-        1px 1px 0 rgba(255,255,255,0.5),
-        2px 2px 0 rgba(0,0,0,0.15);
-    line-height: 1.1;
-}
-
-header h1 .title-accent {
+.header-logo {
+    max-height: 100px;
+    width: auto;
     display: block;
-    font-size: 0.55em;
-    letter-spacing: 6px;
-    color: #d4a017;
-    text-shadow:
-        1px 1px 0 rgba(0,0,0,0.3),
-        0 0 8px rgba(212,160,23,0.3);
+    margin: 0 auto;
 }
 
 .icon-btn {
