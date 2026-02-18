@@ -90,6 +90,15 @@ class SherpaTranscriber {
     }
 
     /**
+     * Convert ALL CAPS sherpa output to sentence case
+     */
+    _toSentenceCase(text) {
+        if (!text) return text;
+        // Lowercase everything, then capitalize first char
+        return text.toLowerCase().replace(/^\w/, c => c.toUpperCase());
+    }
+
+    /**
      * Set hotwords string (format: "keyword :5.0\nkeyword2 :5.0")
      */
     setHotwords(hotwordsString) {
@@ -362,7 +371,7 @@ class SherpaTranscriber {
                 // Get interim result
                 const result = recognizer.getResult(stream).text.trim();
                 if (result) {
-                    this.interimTranscript = result;
+                    this.interimTranscript = this._toSentenceCase(result);
                     if (this.onTranscriptUpdate) {
                         this.onTranscriptUpdate({
                             final: this.finalTranscript,
@@ -373,7 +382,7 @@ class SherpaTranscriber {
 
                 // Check for endpoint (silence detected = finalize)
                 if (recognizer.isEndpoint(stream)) {
-                    const finalText = recognizer.getResult(stream).text.trim();
+                    const finalText = this._toSentenceCase(recognizer.getResult(stream).text.trim());
                     if (finalText) {
                         if (this.finalTranscript.length > 0) {
                             this.finalTranscript += ' ';
@@ -399,7 +408,7 @@ class SherpaTranscriber {
             this.finalizeInterval = setInterval(() => {
                 if (!this.isRecording || !this.recognizerStream || !this.engine) return;
 
-                const text = this.engine.recognizer.getResult(this.recognizerStream).text.trim();
+                const text = this._toSentenceCase(this.engine.recognizer.getResult(this.recognizerStream).text.trim());
                 if (text) {
                     if (this.finalTranscript.length > 0) {
                         this.finalTranscript += ' ';
@@ -445,7 +454,7 @@ class SherpaTranscriber {
 
         // Finalize any remaining text
         if (this.recognizerStream && this.engine) {
-            const finalText = this.engine.recognizer.getResult(this.recognizerStream).text.trim();
+            const finalText = this._toSentenceCase(this.engine.recognizer.getResult(this.recognizerStream).text.trim());
             if (finalText) {
                 if (this.finalTranscript.length > 0) {
                     this.finalTranscript += ' ';
