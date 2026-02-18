@@ -285,29 +285,34 @@ class SherpaTranscriber {
             };
 
             if (this.audioSourceMode === 'mic' || this.audioSourceMode === 'both') {
+                console.log('[Sherpa] Requesting mic via getUserMedia...');
                 this.micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+                console.log('[Sherpa] Mic stream obtained');
             }
 
             if (this.audioSourceMode === 'system' || this.audioSourceMode === 'both') {
                 try {
+                    console.log('[Sherpa] Requesting system audio via getDisplayMedia...');
                     this.displayStream = await navigator.mediaDevices.getDisplayMedia({
                         audio: true,
                         video: true, // Chrome requires video
                     });
                     // Stop video tracks immediately — we only need audio
                     this.displayStream.getVideoTracks().forEach(track => track.stop());
+                    console.log('[Sherpa] Display stream audio tracks:', this.displayStream.getAudioTracks().length);
 
                     if (this.displayStream.getAudioTracks().length === 0) {
-                        throw new Error('No audio track in the shared screen. Make sure to check "Share system audio".');
+                        throw new Error('No audio track. When sharing, select a Chrome TAB (not window) or select "Entire Screen" and check "Share system audio".');
                     }
                 } catch (err) {
+                    console.error('[Sherpa] System audio failed:', err.name, err.message);
                     // Clean up mic stream if we got one
                     if (this.micStream) {
                         this.micStream.getTracks().forEach(t => t.stop());
                         this.micStream = null;
                     }
                     if (err.name === 'NotAllowedError' || err.name === 'AbortError') {
-                        if (this.onError) this.onError('Screen sharing was cancelled. System audio requires sharing a screen or tab.');
+                        if (this.onError) this.onError('Screen sharing was cancelled.');
                     } else {
                         if (this.onError) this.onError(err.message);
                     }
