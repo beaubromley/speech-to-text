@@ -30,6 +30,46 @@
             <div id="vu-meter" class="vu-meter"></div>
         </section>
 
+        <!-- Mode Selection -->
+        <section class="mode-section">
+            <div class="mode-buttons">
+                <button id="mode-web-speech" class="mode-btn">Web Speech</button>
+                <button id="mode-sherpa" class="mode-btn active">Sherpa-ONNX</button>
+            </div>
+            <p id="mode-description" class="mode-description">Local speech recognition via WASM. ~191MB download (cached). Works offline with keyword boosting.</p>
+        </section>
+
+        <!-- Sherpa Loading (hidden by default) -->
+        <section id="sherpa-loading" class="sherpa-loading hidden">
+            <div class="loading-spinner"></div>
+            <p id="sherpa-loading-text">Loading Sherpa-ONNX engine...</p>
+        </section>
+
+        <!-- Keywords (Sherpa only, hidden by default) -->
+        <section id="keywords-section" class="keywords-section">
+            <div class="keywords-header">
+                <h3>Keywords</h3>
+                <button id="clear-keywords-btn" class="action-btn small-action-btn">Clear</button>
+            </div>
+            <p class="keywords-hint">Boost recognition of specific terms</p>
+            <div class="keywords-input-row">
+                <input type="text" id="keyword-input" class="keyword-input" placeholder="Add a keyword..." />
+                <button id="add-keyword-btn" class="control-btn primary add-keyword-btn">ADD</button>
+            </div>
+            <div id="keywords-list" class="keywords-list"></div>
+        </section>
+
+        <!-- Audio Source (Sherpa only, hidden by default) -->
+        <section id="audio-source-section" class="audio-source-section">
+            <h3>Audio Source</h3>
+            <div class="audio-source-buttons">
+                <button id="audio-mic" class="audio-source-btn active">Microphone</button>
+                <button id="audio-system" class="audio-source-btn">System Audio</button>
+                <button id="audio-both" class="audio-source-btn">Mic + System</button>
+            </div>
+            <p id="audio-source-note" class="audio-source-note">Standard microphone input.</p>
+        </section>
+
         <!-- Control Buttons -->
         <section class="controls">
             <button id="start-btn" class="control-btn primary">
@@ -260,6 +300,7 @@
     <script src="js/word-cloud.js"></script>
     <script src="js/audio-processor.js"></script>
     <script src="js/web-speech.js"></script>
+    <script src="js/sherpa-transcriber.js"></script>
     <script src="js/app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

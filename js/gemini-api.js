@@ -94,9 +94,10 @@ Here is the transcript to analyze:
     /**
      * Generate summary from transcript
      * @param {string} transcript - The transcript text to summarize
+     * @param {string[]} keywords - Optional keywords to highlight in the summary
      * @returns {Promise<string>} - Generated summary
      */
-    async generateSummary(transcript) {
+    async generateSummary(transcript, keywords = []) {
         if (!this.isConfigured()) {
             throw new Error('Gemini API key not configured. Please add your API key to js/config.js');
         }
@@ -106,7 +107,15 @@ Here is the transcript to analyze:
         }
 
         // Prepare the prompt with transcript
-        const prompt = this.getCurrentPrompt().replace('{TRANSCRIPT}', transcript);
+        let promptTemplate = this.getCurrentPrompt();
+
+        // Inject keywords context if provided
+        if (keywords.length > 0) {
+            const keywordNote = `\n\nIMPORTANT CONTEXT: The following key terms are specifically relevant to this content: ${keywords.join(', ')}. Pay special attention to these terms. Ensure they are accurately represented in your summary and analysis. These are domain-specific terms the user cares about.\n`;
+            promptTemplate = promptTemplate.replace('{TRANSCRIPT}', keywordNote + '\n{TRANSCRIPT}');
+        }
+
+        const prompt = promptTemplate.replace('{TRANSCRIPT}', transcript);
 
         // Prepare request body
         const requestBody = {
@@ -159,15 +168,20 @@ Here is the transcript to analyze:
      * @param {string} transcript - The original transcript
      * @param {string} summary - The generated summary
      * @param {string} question - The user's follow-up question
+     * @param {string[]} keywords - Optional keywords for context
      * @returns {Promise<string>} - AI response
      */
-    async askFollowUp(transcript, summary, question) {
+    async askFollowUp(transcript, summary, question, keywords = []) {
         if (!this.isConfigured()) {
             throw new Error('Gemini API key not configured');
         }
 
-        const prompt = `You previously analyzed this transcript and produced the summary below. Now answer the user's follow-up question.
+        const keywordContext = keywords.length > 0
+            ? `\nKEY TERMS: ${keywords.join(', ')}\n`
+            : '';
 
+        const prompt = `You previously analyzed this transcript and produced the summary below. Now answer the user's follow-up question.
+${keywordContext}
 TRANSCRIPT:
 ${transcript}
 

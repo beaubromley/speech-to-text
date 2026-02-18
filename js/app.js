@@ -7,12 +7,15 @@ class LectureTranscriberApp {
     constructor() {
         this.ui = new UIController();
         this.webSpeechTranscriber = null;
+        this.sherpaTranscriber = null;
+        this.currentMode = 'web-speech'; // 'web-speech' or 'sherpa'
         this.isRecording = false;
         this.geminiAPI = new GeminiAPI();
         this.currentSummary = '';
         this.vuMeter = new VUMeter('vu-meter');
         this.wordCloud = new WordCloud('word-cloud-container');
         this.recordingStartTime = null;
+        this.keywords = [];
 
         // Auto-save debounced
         this.autoSave = Utils.debounce((text) => {
@@ -36,6 +39,19 @@ class LectureTranscriberApp {
             this.webSpeechTranscriber = new WebSpeechTranscriber();
             this.setupWebSpeechCallbacks();
         }
+
+        // Initialize Sherpa transcriber
+        if (SherpaTranscriber.isSupported()) {
+            this.sherpaTranscriber = new SherpaTranscriber();
+            this.setupSherpaCallbacks();
+        }
+
+        // Restore saved mode and apply
+        this.currentMode = Utils.storage.loadMode();
+        this.applyMode(this.currentMode);
+
+        // Restore keywords
+        this.restoreKeywords();
 
         // Restore saved transcript and summary
         this.restoreTranscript();
@@ -99,6 +115,42 @@ class LectureTranscriberApp {
 
         this.webSpeechTranscriber.onStatusChange = (status) => {
             this.ui.updateStatus(status);
+        };
+    }
+
+    /**
+     * Set up Sherpa transcriber callbacks
+     */
+    setupSherpaCallbacks() {
+        if (!this.sherpaTranscriber) return;
+
+        this.sherpaTranscriber.onTranscriptUpdate = (transcript) => {
+            this.ui.updateTranscript(transcript);
+            if (transcript.final) {
+                this.autoSave(transcript.final);
+                const wcSection = document.getElementById('word-cloud-section');
+                if (wcSection && !wcSection.classList.contains('hidden')) {
+                    this.wordCloud.update(transcript.final);
+                }
+            }
+        };
+
+        this.sherpaTranscriber.onError = (error) => {
+            this.ui.showError(error);
+        };
+
+        this.sherpaTranscriber.onStatusChange = (status) => {
+            this.ui.updateStatus(status);
+        };
+
+        this.sherpaTranscriber.onLoadingChange = (isLoading) => {
+            const loadingEl = document.getElementById('sherpa-loading');
+            if (loadingEl) loadingEl.classList.toggle('hidden', !isLoading);
+        };
+
+        this.sherpaTranscriber.onLoadingStatus = (msg) => {
+            const textEl = document.getElementById('sherpa-loading-text');
+            if (textEl) textEl.textContent = msg;
         };
     }
 
@@ -201,6 +253,40 @@ class LectureTranscriberApp {
             });
         }
 
+        // Mode switching
+        const webSpeechBtn = document.getElementById('mode-web-speech');
+        const sherpaBtn = document.getElementById('mode-sherpa');
+        if (webSpeechBtn) {
+            webSpeechBtn.addEventListener('click', () => this.switchMode('web-speech'));
+        }
+        if (sherpaBtn) {
+            sherpaBtn.addEventListener('click', () => this.switchMode('sherpa'));
+        }
+
+        // Keywords
+        const addKeywordBtn = document.getElementById('add-keyword-btn');
+        const keywordInput = document.getElementById('keyword-input');
+        const clearKeywordsBtn = document.getElementById('clear-keywords-btn');
+        if (addKeywordBtn) {
+            addKeywordBtn.addEventListener('click', () => this.addKeyword());
+        }
+        if (keywordInput) {
+            keywordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') this.addKeyword();
+            });
+        }
+        if (clearKeywordsBtn) {
+            clearKeywordsBtn.addEventListener('click', () => this.clearKeywords());
+        }
+
+        // Audio source buttons
+        ['mic', 'system', 'both'].forEach(mode => {
+            const btn = document.getElementById(`audio-${mode}`);
+            if (btn) {
+                btn.addEventListener('click', () => this.setAudioSource(mode));
+            }
+        });
+
         // Visibility change - re-request wake lock if page becomes visible
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && this.isRecording) {
@@ -210,9 +296,12 @@ class LectureTranscriberApp {
     }
 
     /**
-     * Get current transcriber
+     * Get current transcriber based on selected mode
      */
     getCurrentTranscriber() {
+        if (this.currentMode === 'sherpa') {
+            return this.sherpaTranscriber;
+        }
         return this.webSpeechTranscriber;
     }
 
@@ -566,7 +655,7 @@ class LectureTranscriberApp {
         thread.scrollTop = thread.scrollHeight;
 
         try {
-            const response = await this.geminiAPI.askFollowUp(transcript, this.currentSummary, question);
+            const response = await this.geminiAPI.askFollowUp(transcript, this.currentSummary, question, this.keywords);
             if (typeof marked !== 'undefined') {
                 loadingMsg.innerHTML = marked.parse(response);
             } else {
@@ -609,7 +698,7 @@ class LectureTranscriberApp {
         this.ui.showSummaryLoading(true);
 
         try {
-            const summary = await this.geminiAPI.generateSummary(transcript);
+            const summary = await this.geminiAPI.generateSummary(transcript, this.keywords);
             this.currentSummary = summary;
             Utils.storage.saveSummary(summary);
             this.ui.updateSummary(summary);
@@ -703,6 +792,193 @@ class LectureTranscriberApp {
             this.ui.showError('Failed to export summary');
         }
     }
+
+    // ==========================================
+    // MODE SWITCHING
+    // ==========================================
+
+    /**
+     * Switch between transcription modes
+     * @param {string} mode - 'web-speech' or 'sherpa'
+     */
+    switchMode(mode) {
+        if (this.isRecording) {
+            this.ui.showError('Stop recording before switching modes');
+            return;
+        }
+
+        this.currentMode = mode;
+        Utils.storage.saveMode(mode);
+        this.applyMode(mode);
+
+        // Restore transcript to the new transcriber
+        const savedTranscript = Utils.storage.loadTranscript();
+        const transcriber = this.getCurrentTranscriber();
+        if (transcriber && transcriber.setTranscript && savedTranscript) {
+            transcriber.setTranscript(savedTranscript);
+        }
+    }
+
+    /**
+     * Apply mode to UI (show/hide sections, update buttons)
+     * @param {string} mode - 'web-speech' or 'sherpa'
+     */
+    applyMode(mode) {
+        // Update button active states
+        document.getElementById('mode-web-speech')?.classList.toggle('active', mode === 'web-speech');
+        document.getElementById('mode-sherpa')?.classList.toggle('active', mode === 'sherpa');
+
+        // Show/hide sherpa-specific sections
+        const keywordsSection = document.getElementById('keywords-section');
+        const audioSourceSection = document.getElementById('audio-source-section');
+        const modeDesc = document.getElementById('mode-description');
+
+        if (keywordsSection) keywordsSection.classList.toggle('hidden', mode !== 'sherpa');
+        if (audioSourceSection) audioSourceSection.classList.toggle('hidden', mode !== 'sherpa');
+
+        // Hide system audio buttons on mobile
+        if (mode === 'sherpa' && Utils.compatibility.isMobile()) {
+            const systemBtn = document.getElementById('audio-system');
+            const bothBtn = document.getElementById('audio-both');
+            if (systemBtn) systemBtn.style.display = 'none';
+            if (bothBtn) bothBtn.style.display = 'none';
+        }
+
+        if (modeDesc) {
+            modeDesc.textContent = mode === 'sherpa'
+                ? 'Local speech recognition via WASM. ~191MB download (cached). Works offline with keyword boosting.'
+                : 'Browser speech recognition. Needs internet. Real-time transcription.';
+        }
+    }
+
+    // ==========================================
+    // KEYWORDS
+    // ==========================================
+
+    /**
+     * Add a keyword from the input
+     */
+    addKeyword() {
+        const input = document.getElementById('keyword-input');
+        if (!input) return;
+
+        const keyword = input.value.trim().toLowerCase();
+        if (!keyword || this.keywords.includes(keyword)) {
+            input.value = '';
+            return;
+        }
+
+        this.keywords.push(keyword);
+        input.value = '';
+        this.saveKeywords();
+        this.renderKeywords();
+        this.updateSherpaHotwords();
+    }
+
+    /**
+     * Remove a keyword
+     * @param {string} keyword
+     */
+    removeKeyword(keyword) {
+        this.keywords = this.keywords.filter(k => k !== keyword);
+        this.saveKeywords();
+        this.renderKeywords();
+        this.updateSherpaHotwords();
+    }
+
+    /**
+     * Clear all keywords
+     */
+    clearKeywords() {
+        this.keywords = [];
+        Utils.storage.clearKeywords();
+        this.renderKeywords();
+        this.updateSherpaHotwords();
+    }
+
+    /**
+     * Render keyword chips
+     */
+    renderKeywords() {
+        const list = document.getElementById('keywords-list');
+        if (!list) return;
+
+        if (this.keywords.length === 0) {
+            list.innerHTML = '<span class="keywords-empty">No keywords added yet</span>';
+            return;
+        }
+
+        list.innerHTML = this.keywords.map(kw => {
+            const escaped = kw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            return `<span class="keyword-tag">${escaped}<button class="keyword-remove" data-keyword="${escaped}">&times;</button></span>`;
+        }).join('');
+
+        list.querySelectorAll('.keyword-remove').forEach(btn => {
+            btn.addEventListener('click', () => this.removeKeyword(btn.dataset.keyword));
+        });
+    }
+
+    /**
+     * Update sherpa hotwords from current keywords
+     */
+    updateSherpaHotwords() {
+        if (!this.sherpaTranscriber) return;
+        const hotwordsString = this.keywords.map(kw => `${kw} :5.0`).join('\n');
+        this.sherpaTranscriber.setHotwords(hotwordsString);
+    }
+
+    /**
+     * Save keywords to storage
+     */
+    saveKeywords() {
+        Utils.storage.saveKeywords(this.keywords);
+    }
+
+    /**
+     * Restore keywords from storage
+     */
+    restoreKeywords() {
+        this.keywords = Utils.storage.loadKeywords();
+        this.renderKeywords();
+        this.updateSherpaHotwords();
+    }
+
+    // ==========================================
+    // AUDIO SOURCE
+    // ==========================================
+
+    /**
+     * Set audio source mode for Sherpa
+     * @param {string} mode - 'mic', 'system', or 'both'
+     */
+    setAudioSource(mode) {
+        if (this.isRecording) {
+            this.ui.showError('Stop recording before changing audio source');
+            return;
+        }
+
+        ['mic', 'system', 'both'].forEach(m => {
+            document.getElementById(`audio-${m}`)?.classList.toggle('active', m === mode);
+        });
+
+        if (this.sherpaTranscriber) {
+            this.sherpaTranscriber.setAudioSourceMode(mode);
+        }
+
+        const note = document.getElementById('audio-source-note');
+        if (note) {
+            const notes = {
+                mic: 'Standard microphone input.',
+                system: 'Captures computer audio output. Requires screen/tab sharing permission.',
+                both: 'Captures both microphone and computer audio simultaneously.'
+            };
+            note.textContent = notes[mode];
+        }
+    }
+
+    // ==========================================
+    // THEME
+    // ==========================================
 
     /**
      * Initialize theme toggle from saved preference

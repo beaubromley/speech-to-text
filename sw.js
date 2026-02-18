@@ -1,10 +1,11 @@
-const CACHE_NAME = 'talkboy-v1';
+const CACHE_NAME = 'talkboy-v2';
 const ASSETS = [
     './',
     './index.html',
     './css/styles.css',
     './js/app.js',
     './js/web-speech.js',
+    './js/sherpa-transcriber.js',
     './js/audio-processor.js',
     './js/ui-controller.js',
     './js/utils.js',
@@ -25,12 +26,13 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// Activate - clean old caches
+// Activate - clean old caches (keep sherpa model cache)
 self.addEventListener('activate', (event) => {
+    const keepCaches = [CACHE_NAME, SHERPA_CACHE];
     event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
-                keys.filter((key) => key !== CACHE_NAME)
+                keys.filter((key) => !keepCaches.includes(key))
                     .map((key) => caches.delete(key))
             );
         })
@@ -38,18 +40,41 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch - network first, fall back to cache
+// Sherpa-ONNX CDN — cache these persistently (model files never change)
+const SHERPA_CDN = 'huggingface.co/spaces/k2-fsa/web-assembly-asr-sherpa-onnx-en';
+const SHERPA_CACHE = 'sherpa-model-v1';
+
+// Fetch handler
 self.addEventListener('fetch', (event) => {
-    // Skip non-GET requests and cross-origin requests (CDNs, APIs)
     if (event.request.method !== 'GET') return;
 
     const url = new URL(event.request.url);
+
+    // Sherpa CDN files: cache-first (they never change, ~191MB total)
+    if (url.hostname === 'huggingface.co' && url.pathname.includes('web-assembly-asr-sherpa-onnx-en')) {
+        event.respondWith(
+            caches.open(SHERPA_CACHE).then((cache) => {
+                return cache.match(event.request).then((cached) => {
+                    if (cached) return cached;
+                    return fetch(event.request).then((response) => {
+                        if (response.ok) {
+                            cache.put(event.request, response.clone());
+                        }
+                        return response;
+                    });
+                });
+            })
+        );
+        return;
+    }
+
+    // Skip other cross-origin requests
     if (url.origin !== location.origin) return;
 
+    // App files: network-first, fall back to cache
     event.respondWith(
         fetch(event.request)
             .then((response) => {
-                // Cache successful responses
                 const clone = response.clone();
                 caches.open(CACHE_NAME).then((cache) => {
                     cache.put(event.request, clone);

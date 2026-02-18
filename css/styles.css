@@ -696,6 +696,269 @@ main {
 }
 
 /* ============================================
+   MODE SELECTION
+   ============================================ */
+.mode-section {
+    background: linear-gradient(180deg, var(--panel-bg-top) 0%, var(--panel-bg-bottom) 100%);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    border: 2px solid var(--panel-border);
+    box-shadow:
+        inset 0 2px 4px rgba(0,0,0,0.5),
+        0 1px 0 rgba(255,255,255,0.15);
+}
+
+[data-theme="pro"] .mode-section {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.mode-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 2px solid var(--panel-border);
+    border-radius: 4px;
+    background: var(--screen-bg-top);
+    color: var(--panel-heading);
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.mode-btn.active {
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-color: var(--accent);
+}
+
+.mode-btn:hover:not(.active) {
+    border-color: var(--accent);
+}
+
+.mode-description {
+    font-size: 0.75rem;
+    color: var(--panel-heading);
+    margin: 0;
+    opacity: 0.7;
+}
+
+/* ============================================
+   SHERPA LOADING
+   ============================================ */
+.sherpa-loading {
+    background: linear-gradient(180deg, var(--panel-bg-top) 0%, var(--panel-bg-bottom) 100%);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 2px solid var(--panel-border);
+    text-align: center;
+}
+
+[data-theme="pro"] .sherpa-loading {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.sherpa-loading p {
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    margin: 0.5rem 0 0;
+}
+
+/* ============================================
+   KEYWORDS SECTION
+   ============================================ */
+.keywords-section {
+    background: linear-gradient(180deg, var(--panel-bg-top) 0%, var(--panel-bg-bottom) 100%);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    border: 2px solid var(--panel-border);
+    box-shadow:
+        inset 0 2px 4px rgba(0,0,0,0.5),
+        0 1px 0 rgba(255,255,255,0.15);
+}
+
+[data-theme="pro"] .keywords-section {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.keywords-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.keywords-header h3 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    color: var(--panel-heading);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.keywords-hint {
+    font-size: 0.7rem;
+    color: var(--panel-heading);
+    opacity: 0.6;
+    margin: 0 0 0.5rem;
+}
+
+.keywords-input-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.keyword-input {
+    flex: 1;
+    padding: 0.4rem 0.6rem;
+    background: var(--screen-bg-top);
+    border: 2px solid var(--screen-border);
+    border-radius: 4px;
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+}
+
+.keyword-input::placeholder {
+    color: var(--panel-heading);
+    opacity: 0.4;
+}
+
+.keyword-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.add-keyword-btn {
+    flex: none;
+    height: auto;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+.keywords-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-height: 1.5rem;
+}
+
+.keywords-empty {
+    font-size: 0.75rem;
+    color: var(--panel-heading);
+    opacity: 0.5;
+    font-style: italic;
+}
+
+.keyword-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-radius: 12px;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.keyword-remove {
+    background: none;
+    border: none;
+    color: var(--bg-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.7;
+}
+
+.keyword-remove:hover {
+    opacity: 1;
+}
+
+/* ============================================
+   AUDIO SOURCE SECTION
+   ============================================ */
+.audio-source-section {
+    background: linear-gradient(180deg, var(--panel-bg-top) 0%, var(--panel-bg-bottom) 100%);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    border: 2px solid var(--panel-border);
+    box-shadow:
+        inset 0 2px 4px rgba(0,0,0,0.5),
+        0 1px 0 rgba(255,255,255,0.15);
+}
+
+[data-theme="pro"] .audio-source-section {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.audio-source-section h3 {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    color: var(--panel-heading);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.audio-source-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.audio-source-btn {
+    flex: 1;
+    padding: 0.4rem 0.5rem;
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 2px solid var(--panel-border);
+    border-radius: 4px;
+    background: var(--screen-bg-top);
+    color: var(--panel-heading);
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.audio-source-btn.active {
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-color: var(--accent);
+}
+
+.audio-source-btn:hover:not(.active) {
+    border-color: var(--accent);
+}
+
+.audio-source-note {
+    font-size: 0.7rem;
+    color: var(--panel-heading);
+    opacity: 0.6;
+    margin: 0;
+}
+
+/* ============================================
    CONTROL BUTTONS
    ============================================ */
 .controls {

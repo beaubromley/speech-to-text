@@ -145,6 +145,7 @@ const Utils = {
         MODE_KEY: 'speech-to-text-mode',
         AUTO_SUMMARY_KEY: 'speech-to-text-auto-summary',
         THEME_KEY: 'speech-to-text-theme',
+        KEYWORDS_KEY: 'speech-to-text-keywords',
 
         /**
          * Save transcript to localStorage
@@ -246,10 +247,10 @@ const Utils = {
          */
         loadMode() {
             try {
-                return localStorage.getItem(this.MODE_KEY) || 'web-speech';
+                return localStorage.getItem(this.MODE_KEY) || 'sherpa';
             } catch (error) {
                 console.error('Error loading mode:', error);
-                return 'web-speech';
+                return 'sherpa';
             }
         },
 
@@ -302,6 +303,45 @@ const Utils = {
                 return localStorage.getItem(this.THEME_KEY) || 'talkboy';
             } catch (error) {
                 return 'talkboy';
+            }
+        },
+
+        /**
+         * Save keywords list
+         * @param {string[]} keywords
+         */
+        saveKeywords(keywords) {
+            try {
+                localStorage.setItem(this.KEYWORDS_KEY, JSON.stringify(keywords));
+                return true;
+            } catch (error) {
+                console.error('Error saving keywords:', error);
+                return false;
+            }
+        },
+
+        /**
+         * Load keywords list
+         * @returns {string[]}
+         */
+        loadKeywords() {
+            try {
+                const saved = localStorage.getItem(this.KEYWORDS_KEY);
+                return saved ? JSON.parse(saved) : [];
+            } catch (error) {
+                return [];
+            }
+        },
+
+        /**
+         * Clear keywords from storage
+         */
+        clearKeywords() {
+            try {
+                localStorage.removeItem(this.KEYWORDS_KEY);
+                return true;
+            } catch (error) {
+                return false;
             }
         }
     },
