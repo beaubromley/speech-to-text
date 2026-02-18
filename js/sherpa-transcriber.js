@@ -373,7 +373,7 @@ class SherpaTranscriber {
                 // Get interim result
                 const result = recognizer.getResult(stream).text.trim();
                 if (result) {
-                    this.interimTranscript = this._toSentenceCase(result);
+                    this.interimTranscript = (result);
                     if (this.onTranscriptUpdate) {
                         this.onTranscriptUpdate({
                             final: this.finalTranscript,
@@ -384,7 +384,7 @@ class SherpaTranscriber {
 
                 // Check for endpoint (silence detected = finalize)
                 if (recognizer.isEndpoint(stream)) {
-                    const finalText = this._toSentenceCase(recognizer.getResult(stream).text.trim());
+                    const finalText = (recognizer.getResult(stream).text.trim());
                     if (finalText) {
                         if (this.finalTranscript.length > 0) {
                             this.finalTranscript += ' ';
@@ -411,7 +411,7 @@ class SherpaTranscriber {
             this.finalizeInterval = setInterval(() => {
                 if (!this.isRecording || !this.recognizerStream || !this.engine) return;
 
-                const text = this._toSentenceCase(this.engine.recognizer.getResult(this.recognizerStream).text.trim());
+                const text = (this.engine.recognizer.getResult(this.recognizerStream).text.trim());
                 if (text) {
                     if (this.finalTranscript.length > 0) {
                         this.finalTranscript += ' ';
@@ -458,7 +458,7 @@ class SherpaTranscriber {
 
         // Finalize any remaining text
         if (this.recognizerStream && this.engine) {
-            const finalText = this._toSentenceCase(this.engine.recognizer.getResult(this.recognizerStream).text.trim());
+            const finalText = (this.engine.recognizer.getResult(this.recognizerStream).text.trim());
             if (finalText) {
                 if (this.finalTranscript.length > 0) {
                     this.finalTranscript += ' ';
