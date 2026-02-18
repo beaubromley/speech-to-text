@@ -276,7 +276,8 @@ class SherpaTranscriber {
      * @returns {Promise<boolean>} success
      */
     async start() {
-        if (this.isRecording) return false;
+        if (this.isRecording || this._starting) return false;
+        this._starting = true;
 
         try {
             // Load engine if needed (or if hotwords changed)
@@ -327,6 +328,7 @@ class SherpaTranscriber {
                     } else {
                         if (this.onError) this.onError(err.message);
                     }
+                    this._starting = false;
                     return false;
                 }
             }
@@ -351,11 +353,11 @@ class SherpaTranscriber {
             this.scriptProcessor.connect(this.audioContext.destination);
 
             // Process audio
-            const recognizer = this.engine.recognizer;
-            const stream = this.recognizerStream;
-
             this.scriptProcessor.onaudioprocess = (e) => {
-                if (!this.isRecording) return;
+                if (!this.isRecording || !this.recognizerStream || !this.engine) return;
+
+                const recognizer = this.engine.recognizer;
+                const stream = this.recognizerStream;
 
                 let samples = new Float32Array(e.inputBuffer.getChannelData(0));
                 if (actualRate !== 16000) {
@@ -402,6 +404,7 @@ class SherpaTranscriber {
             };
 
             this.isRecording = true;
+            this._starting = false;
             if (this.onStatusChange) this.onStatusChange('recording');
 
             // Periodic finalization — move interim to final every N seconds
@@ -434,6 +437,7 @@ class SherpaTranscriber {
             console.error('Sherpa start error:', err);
             if (this.onError) this.onError(`Failed to start: ${err.message}`);
             this._cleanupAudio();
+            this._starting = false;
             return false;
         }
     }
