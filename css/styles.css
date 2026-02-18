@@ -1366,8 +1366,8 @@ main {
 }
 
 .interim-text {
-    color: var(--accent);
-    opacity: 0.7;
+    color: var(--text-muted);
+    font-style: italic;
     text-shadow: none;
 }
 

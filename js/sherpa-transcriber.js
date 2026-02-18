@@ -72,7 +72,7 @@ class SherpaTranscriber {
         this.lastHotwords = null;     // track changes to know when to recreate recognizer
         this.sampleRate = 16000;
         this.finalizeInterval = null; // periodic finalization timer
-        this.finalizeIntervalMs = 5000; // finalize interim text every 5s
+        this.finalizeIntervalMs = 3000; // finalize interim text every 3s
 
         // Callbacks
         this.onTranscriptUpdate = null;
