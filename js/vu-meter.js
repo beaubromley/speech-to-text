@@ -41,20 +41,41 @@ class VUMeter {
     async start() {
         try {
             this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = this.audioContext.createMediaStreamSource(this.stream);
-
-            this.analyser = this.audioContext.createAnalyser();
-            this.analyser.fftSize = 256;
-            this.analyser.smoothingTimeConstant = 0.7;
-            source.connect(this.analyser);
-
-            this.animate();
+            this._connectStream(this.stream);
             return true;
         } catch (error) {
             console.error('VU Meter: Could not access microphone', error);
             return false;
         }
+    }
+
+    /**
+     * Start animating from an existing MediaStream (no getUserMedia needed)
+     * @param {MediaStream} mediaStream
+     */
+    startWithStream(mediaStream) {
+        if (!mediaStream || mediaStream.getAudioTracks().length === 0) return false;
+        this._connectStream(mediaStream, false);
+        return true;
+    }
+
+    /**
+     * Connect a stream to the analyser and start animating
+     * @param {MediaStream} mediaStream
+     * @param {boolean} ownStream - if true, VU meter will stop the stream tracks on stop()
+     */
+    _connectStream(mediaStream, ownStream = true) {
+        this._ownStream = ownStream;
+        this.stream = mediaStream;
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = this.audioContext.createMediaStreamSource(mediaStream);
+
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 256;
+        this.analyser.smoothingTimeConstant = 0.7;
+        source.connect(this.analyser);
+
+        this.animate();
     }
 
     /**
@@ -98,7 +119,9 @@ class VUMeter {
         }
 
         if (this.stream) {
-            this.stream.getTracks().forEach(track => track.stop());
+            if (this._ownStream !== false) {
+                this.stream.getTracks().forEach(track => track.stop());
+            }
             this.stream = null;
         }
 

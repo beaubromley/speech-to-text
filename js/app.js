@@ -335,8 +335,15 @@ class LectureTranscriberApp {
             // Spin cassette reels
             const reels = document.getElementById('cassette-reels');
             if (reels) reels.classList.add('recording');
-            // Start VU meter
-            this.vuMeter.start();
+            // Start VU meter — use sherpa's stream if available, otherwise own mic
+            if (this.currentMode === 'sherpa' && this.sherpaTranscriber) {
+                const activeStream = this.sherpaTranscriber.getActiveStream();
+                if (activeStream) {
+                    this.vuMeter.startWithStream(activeStream);
+                }
+            } else {
+                this.vuMeter.start();
+            }
             // Track recording start time and show mark button
             this.recordingStartTime = Date.now();
             const markBtn = document.getElementById('mark-btn');

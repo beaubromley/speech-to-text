@@ -520,6 +520,14 @@ class SherpaTranscriber {
     }
 
     /**
+     * Get the active audio MediaStream (for VU meter, etc.)
+     * @returns {MediaStream|null}
+     */
+    getActiveStream() {
+        return this.micStream || this.displayStream || null;
+    }
+
+    /**
      * Clear transcript
      */
     clear() {
