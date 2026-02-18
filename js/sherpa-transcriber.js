@@ -71,6 +71,8 @@ class SherpaTranscriber {
         this.hotwords = '';           // newline-separated "word :weight" entries
         this.lastHotwords = null;     // track changes to know when to recreate recognizer
         this.sampleRate = 16000;
+        this.finalizeInterval = null; // periodic finalization timer
+        this.finalizeIntervalMs = 5000; // finalize interim text every 5s
 
         // Callbacks
         this.onTranscriptUpdate = null;
@@ -392,6 +394,31 @@ class SherpaTranscriber {
 
             this.isRecording = true;
             if (this.onStatusChange) this.onStatusChange('recording');
+
+            // Periodic finalization — move interim to final every N seconds
+            this.finalizeInterval = setInterval(() => {
+                if (!this.isRecording || !this.recognizerStream || !this.engine) return;
+
+                const text = this.engine.recognizer.getResult(this.recognizerStream).text.trim();
+                if (text) {
+                    if (this.finalTranscript.length > 0) {
+                        this.finalTranscript += ' ';
+                    }
+                    this.finalTranscript += text;
+                    this.interimTranscript = '';
+
+                    // Reset the stream to start fresh
+                    this.engine.recognizer.reset(this.recognizerStream);
+
+                    if (this.onTranscriptUpdate) {
+                        this.onTranscriptUpdate({
+                            final: this.finalTranscript,
+                            interim: '',
+                        });
+                    }
+                }
+            }, this.finalizeIntervalMs);
+
             return true;
 
         } catch (err) {
@@ -409,6 +436,12 @@ class SherpaTranscriber {
         if (!this.isRecording) return;
 
         this.isRecording = false;
+
+        // Clear periodic finalization
+        if (this.finalizeInterval) {
+            clearInterval(this.finalizeInterval);
+            this.finalizeInterval = null;
+        }
 
         // Finalize any remaining text
         if (this.recognizerStream && this.engine) {
