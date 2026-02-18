@@ -107,17 +107,21 @@ class SherpaTranscriber {
      */
     async loadEngine() {
         const hotwordsChanged = this.hotwords !== this.lastHotwords;
+        console.log('[Sherpa] loadEngine called, hotwordsChanged:', hotwordsChanged,
+            'cachedEngine:', !!window._sherpaEngine, 'cachedModule:', !!window._sherpaModule);
 
         // If engine is cached and hotwords haven't changed, reuse it
         if (window._sherpaEngine && !hotwordsChanged) {
             this.engine = window._sherpaEngine;
             this.engineLoaded = true;
+            console.log('[Sherpa] Using cached engine');
             if (this.onLoadingStatus) this.onLoadingStatus('Sherpa-ONNX ready (cached)');
             return;
         }
 
         // If module is cached but hotwords changed, just recreate the recognizer
         if (window._sherpaModule && hotwordsChanged) {
+            console.log('[Sherpa] Recreating recognizer with new hotwords');
             if (this.onLoadingStatus) this.onLoadingStatus('Updating recognizer with new keywords...');
             this.engine = this._createRecognizerFromModule(window._sherpaModule);
             window._sherpaEngine = this.engine;
@@ -128,20 +132,28 @@ class SherpaTranscriber {
         }
 
         // Full load from CDN
+        console.log('[Sherpa] Full load from CDN starting...');
         if (this.onLoadingChange) this.onLoadingChange(true);
         if (this.onLoadingStatus) this.onLoadingStatus('Loading Sherpa-ONNX (~191MB first time, cached after)...');
 
         try {
             // Load the JS API wrapper first
+            console.log('[Sherpa] Loading sherpa-onnx-asr.js...');
             await loadSherpaScript(`${SHERPA_CDN}/sherpa-onnx-asr.js`);
+            console.log('[Sherpa] sherpa-onnx-asr.js loaded. createOnlineRecognizer:', typeof window.createOnlineRecognizer);
 
             const module = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => reject(new Error('Sherpa init timeout (5 min)')), 300000);
 
                 window.Module = {
-                    locateFile: (path) => `${SHERPA_CDN}/${path}`,
+                    locateFile: (path) => {
+                        const url = `${SHERPA_CDN}/${path}`;
+                        console.log('[Sherpa] locateFile:', path);
+                        return url;
+                    },
                     onRuntimeInitialized: () => {
                         clearTimeout(timeout);
+                        console.log('[Sherpa] WASM runtime initialized');
                         try {
                             if (this.onLoadingStatus) this.onLoadingStatus('Model loaded, creating recognizer...');
                             resolve(window.Module);
@@ -150,15 +162,20 @@ class SherpaTranscriber {
                         }
                     },
                     setStatus: (status) => {
-                        if (status && this.onLoadingStatus) this.onLoadingStatus(status);
+                        if (status) {
+                            console.log('[Sherpa] Module status:', status);
+                            if (this.onLoadingStatus) this.onLoadingStatus(status);
+                        }
                     }
                 };
 
+                console.log('[Sherpa] Loading sherpa-onnx-wasm-main-asr.js...');
                 loadSherpaScript(`${SHERPA_CDN}/sherpa-onnx-wasm-main-asr.js`).catch(reject);
             });
 
             // Cache the module
             window._sherpaModule = module;
+            console.log('[Sherpa] Module cached, creating recognizer...');
 
             // Create the recognizer
             this.engine = this._createRecognizerFromModule(module);
@@ -166,8 +183,10 @@ class SherpaTranscriber {
             this.lastHotwords = this.hotwords;
             this.engineLoaded = true;
 
+            console.log('[Sherpa] Engine ready');
             if (this.onLoadingStatus) this.onLoadingStatus('Sherpa-ONNX ready');
         } catch (err) {
+            console.error('[Sherpa] loadEngine failed:', err);
             if (this.onError) this.onError(`Failed to load Sherpa-ONNX: ${err.message}`);
             throw err;
         } finally {
@@ -250,10 +269,13 @@ class SherpaTranscriber {
 
         try {
             // Load engine if needed (or if hotwords changed)
+            console.log('[Sherpa] start() called, loading engine...');
             await this.loadEngine();
+            console.log('[Sherpa] Engine loaded, creating stream...');
 
             // Create a new recognizer stream
             this.recognizerStream = this.engine.createStream();
+            console.log('[Sherpa] Stream created, getting audio...');
 
             // Get audio stream(s)
             const audioConstraints = {

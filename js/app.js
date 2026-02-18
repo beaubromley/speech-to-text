@@ -343,7 +343,10 @@ class LectureTranscriberApp {
             if (markBtn) markBtn.classList.remove('hidden');
             console.log('Recording started');
         } else {
-            this.ui.showError('Failed to start recording. Please check microphone permissions.');
+            const msg = this.currentMode === 'sherpa'
+                ? 'Failed to start Sherpa engine. Check the browser console for details.'
+                : 'Failed to start recording. Please check microphone permissions.';
+            this.ui.showError(msg);
             await Utils.wakeLock.release();
         }
     }
