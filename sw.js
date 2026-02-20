@@ -1,4 +1,4 @@
-const CACHE_NAME = 'talkboy-v2';
+const CACHE_NAME = 'talkboy-v3';
 const ASSETS = [
     './',
     './index.html',
