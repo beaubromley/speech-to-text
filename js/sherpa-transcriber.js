@@ -69,7 +69,9 @@ class SherpaTranscriber {
         // Configuration
         this.audioSourceMode = 'mic'; // 'mic', 'system', 'both'
         this.hotwords = '';           // newline-separated "word :weight" entries
+        this.hotwordsScore = 3.5;     // global boost strength for hotwords
         this.lastHotwords = null;     // track changes to know when to recreate recognizer
+        this.lastHotwordsScore = null;
         this.sampleRate = 16000;
         this.finalizeInterval = null; // periodic finalization timer
         this.finalizeIntervalMs = 3000; // finalize interim text every 3s
@@ -106,6 +108,14 @@ class SherpaTranscriber {
     }
 
     /**
+     * Set hotwords boost score
+     * @param {number} score - 0 to 10
+     */
+    setHotwordsScore(score) {
+        this.hotwordsScore = score;
+    }
+
+    /**
      * Set audio source mode
      * @param {string} mode - 'mic', 'system', or 'both'
      */
@@ -117,7 +127,7 @@ class SherpaTranscriber {
      * Load the sherpa-onnx WASM engine
      */
     async loadEngine() {
-        const hotwordsChanged = this.hotwords !== this.lastHotwords;
+        const hotwordsChanged = this.hotwords !== this.lastHotwords || this.hotwordsScore !== this.lastHotwordsScore;
         console.log('[Sherpa] loadEngine called, hotwordsChanged:', hotwordsChanged,
             'cachedEngine:', !!window._sherpaEngine, 'cachedModule:', !!window._sherpaModule);
 
@@ -137,6 +147,7 @@ class SherpaTranscriber {
             this.engine = this._createRecognizerFromModule(window._sherpaModule);
             window._sherpaEngine = this.engine;
             this.lastHotwords = this.hotwords;
+            this.lastHotwordsScore = this.hotwordsScore;
             this.engineLoaded = true;
             if (this.onLoadingStatus) this.onLoadingStatus('Sherpa-ONNX ready');
             return;
@@ -192,6 +203,7 @@ class SherpaTranscriber {
             this.engine = this._createRecognizerFromModule(module);
             window._sherpaEngine = this.engine;
             this.lastHotwords = this.hotwords;
+            this.lastHotwordsScore = this.hotwordsScore;
             this.engineLoaded = true;
 
             console.log('[Sherpa] Engine ready');
@@ -253,7 +265,7 @@ class SherpaTranscriber {
             rule2MinTrailingSilence: 1.2,
             rule3MinUtteranceLength: 20,
             hotwordsFile: hotwordsPath,
-            hotwordsScore: 3.5,
+            hotwordsScore: this.hotwordsScore,
             hotwordsBuf: '',
             hotwordsBufSize: 0,
             ctcFstDecoderConfig: { graph: '', maxActive: 3000 },

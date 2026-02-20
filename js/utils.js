@@ -146,6 +146,7 @@ const Utils = {
         AUTO_SUMMARY_KEY: 'speech-to-text-auto-summary',
         THEME_KEY: 'speech-to-text-theme',
         KEYWORDS_KEY: 'speech-to-text-keywords',
+        HOTWORDS_SCORE_KEY: 'speech-to-text-hotwords-score',
 
         /**
          * Save transcript to localStorage
@@ -342,6 +343,24 @@ const Utils = {
                 return true;
             } catch (error) {
                 return false;
+            }
+        },
+
+        saveHotwordsScore(score) {
+            try {
+                localStorage.setItem(this.HOTWORDS_SCORE_KEY, score);
+                return true;
+            } catch (error) {
+                return false;
+            }
+        },
+
+        loadHotwordsScore() {
+            try {
+                const saved = localStorage.getItem(this.HOTWORDS_SCORE_KEY);
+                return saved !== null ? parseFloat(saved) : 3.5;
+            } catch (error) {
+                return 3.5;
             }
         }
     },

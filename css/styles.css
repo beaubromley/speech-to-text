@@ -892,6 +892,44 @@ main {
     opacity: 1;
 }
 
+.hotwords-score-row {
+    margin-top: 0.6rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--panel-border);
+}
+
+.hotwords-score-row label {
+    font-size: 0.75rem;
+    color: var(--panel-heading);
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.hotwords-score-row label span {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.hotwords-score-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--screen-bg-top);
+    outline: none;
+}
+
+.hotwords-score-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+}
+
 /* ============================================
    AUDIO SOURCE SECTION
    ============================================ */

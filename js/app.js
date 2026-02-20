@@ -279,6 +279,24 @@ class LectureTranscriberApp {
             clearKeywordsBtn.addEventListener('click', () => this.clearKeywords());
         }
 
+        // Hotwords score slider
+        const hotwordsSlider = document.getElementById('hotwords-score-slider');
+        const hotwordsValue = document.getElementById('hotwords-score-value');
+        if (hotwordsSlider) {
+            // Restore saved value
+            const savedScore = Utils.storage.loadHotwordsScore();
+            hotwordsSlider.value = savedScore;
+            if (hotwordsValue) hotwordsValue.textContent = savedScore;
+            if (this.sherpaTranscriber) this.sherpaTranscriber.setHotwordsScore(savedScore);
+
+            hotwordsSlider.addEventListener('input', () => {
+                const score = parseFloat(hotwordsSlider.value);
+                if (hotwordsValue) hotwordsValue.textContent = score;
+                if (this.sherpaTranscriber) this.sherpaTranscriber.setHotwordsScore(score);
+                Utils.storage.saveHotwordsScore(score);
+            });
+        }
+
         // Audio source buttons
         ['mic', 'system', 'both'].forEach(mode => {
             const btn = document.getElementById(`audio-${mode}`);
