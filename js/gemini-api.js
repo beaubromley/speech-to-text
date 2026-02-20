@@ -233,7 +233,7 @@ Answer concisely and directly. Use markdown formatting.`;
      * @returns {Object} - Validation result
      */
     validateTranscript(transcript) {
-        const maxChars = 30000; // Conservative limit for Gemini
+        const maxChars = 2000000; // Gemini 2.5 Flash supports 1M token context
         const chars = transcript.length;
 
         if (chars === 0) {
