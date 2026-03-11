@@ -221,6 +221,11 @@ class LectureTranscriberApp {
             generateSummaryBtn.addEventListener('click', () => this.generateSummary());
         }
 
+        const suggestQuestionsBtn = document.getElementById('suggest-questions-btn');
+        if (suggestQuestionsBtn) {
+            suggestQuestionsBtn.addEventListener('click', () => this.suggestQuestions());
+        }
+
         if (editPromptBtn) {
             editPromptBtn.addEventListener('click', () => this.showPromptEditor());
         }
@@ -478,6 +483,10 @@ class LectureTranscriberApp {
 
         // Reset prompt to default
         this.geminiAPI.resetPrompt();
+
+        // Clear suggested questions
+        const suggestedQContainer = document.getElementById('suggested-questions-container');
+        if (suggestedQContainer) suggestedQContainer.classList.add('hidden');
 
         // Clear follow-up thread
         this.hideFollowUpSection();
@@ -738,6 +747,49 @@ class LectureTranscriberApp {
             console.error('Summary generation failed:', error);
             this.ui.showSummaryLoading(false);
             this.ui.showError(`Failed to generate summary: ${error.message}`);
+        }
+    }
+
+    /**
+     * Suggest intelligent questions based on transcript
+     */
+    async suggestQuestions() {
+        if (!this.geminiAPI.isConfigured()) {
+            this.ui.showError('Gemini API key not configured. Please check js/config.js');
+            return;
+        }
+
+        const transcriber = this.getCurrentTranscriber();
+        if (!transcriber) return;
+
+        const transcript = transcriber.getTranscript();
+        if (!transcript || transcript.trim().length === 0) {
+            this.ui.showError('No transcript available to analyze');
+            return;
+        }
+
+        const container = document.getElementById('suggested-questions-container');
+        const textEl = document.getElementById('suggested-questions-text');
+        const loading = document.getElementById('questions-loading');
+
+        if (loading) loading.classList.remove('hidden');
+        if (container) container.classList.add('hidden');
+
+        try {
+            const questions = await this.geminiAPI.suggestQuestions(transcript, this.currentSummary, this.keywords);
+            if (textEl) {
+                if (typeof marked !== 'undefined') {
+                    textEl.innerHTML = marked.parse(questions);
+                } else {
+                    textEl.textContent = questions;
+                }
+            }
+            if (loading) loading.classList.add('hidden');
+            if (container) container.classList.remove('hidden');
+            this.ui.showSuccess('Questions generated!');
+        } catch (error) {
+            if (loading) loading.classList.add('hidden');
+            this.ui.showError(`Failed to suggest questions: ${error.message}`);
         }
     }
 

@@ -228,6 +228,76 @@ Answer concisely and directly. Use markdown formatting.`;
     }
 
     /**
+     * Suggest intelligent questions to ask based on the transcript
+     * @param {string} transcript - The transcript text
+     * @param {string} summary - Optional summary for additional context
+     * @param {string[]} keywords - Optional keywords for context
+     * @returns {Promise<string>} - Suggested questions in markdown
+     */
+    async suggestQuestions(transcript, summary = '', keywords = []) {
+        if (!this.isConfigured()) {
+            throw new Error('Gemini API key not configured');
+        }
+
+        if (!transcript || transcript.trim().length === 0) {
+            throw new Error('No transcript available');
+        }
+
+        const keywordContext = keywords.length > 0
+            ? `\nKEY TERMS: ${keywords.join(', ')}\n`
+            : '';
+
+        const summaryContext = summary
+            ? `\nSUMMARY:\n${summary}\n`
+            : '';
+
+        const prompt = `You are an intelligent assistant. Based on the following transcript from a conversation, meeting, lecture, or interview, suggest exactly 5 thoughtful, intelligent questions that the listener/participant could ask to deepen understanding, clarify key points, or drive the discussion forward.
+${keywordContext}
+TRANSCRIPT:
+${transcript}
+${summaryContext}
+Provide exactly 5 questions. Each question should be:
+- Specific to the content discussed (not generic)
+- Thought-provoking and insightful
+- Useful for deepening understanding or uncovering next steps
+
+Format your response as a numbered list in markdown. For each question, add a brief one-sentence explanation of why it's worth asking.`;
+
+        const requestBody = {
+            contents: [{
+                parts: [{
+                    text: prompt
+                }]
+            }],
+            generationConfig: {
+                temperature: 0.8,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 4096,
+            }
+        };
+
+        try {
+            const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error?.message || `API request failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No questions generated.';
+        } catch (error) {
+            console.error('Gemini Suggest Questions Error:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Validate transcript length (Gemini has token limits)
      * @param {string} transcript - Transcript to validate
      * @returns {Object} - Validation result

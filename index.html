@@ -182,6 +182,9 @@
                 <button id="generate-summary-btn" class="action-btn">
                     Generate Summary
                 </button>
+                <button id="suggest-questions-btn" class="action-btn">
+                    Suggest Questions
+                </button>
                 <button id="edit-prompt-btn" class="action-btn secondary-action-btn">
                     Edit Prompt
                 </button>
@@ -206,6 +209,18 @@
             <div id="summary-loading" class="summary-loading hidden">
                 <div class="loading-spinner"></div>
                 <p>Generating summary...</p>
+            </div>
+
+            <!-- Suggested Questions -->
+            <div id="suggested-questions-container" class="suggested-questions-container hidden">
+                <h3>Suggested Questions</h3>
+                <div id="suggested-questions-text" class="summary-text"></div>
+            </div>
+
+            <!-- Suggested Questions Loading -->
+            <div id="questions-loading" class="summary-loading hidden">
+                <div class="loading-spinner"></div>
+                <p>Generating questions...</p>
             </div>
 
             <!-- Follow-up Questions -->
