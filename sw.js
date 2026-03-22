@@ -43,7 +43,7 @@ self.addEventListener('activate', (event) => {
 
 // Sherpa-ONNX CDN — cache these persistently (model files never change)
 const SHERPA_CDN = 'huggingface.co/spaces/k2-fsa/web-assembly-asr-sherpa-onnx-en';
-const SHERPA_CACHE = 'sherpa-model-v1';
+const SHERPA_CACHE = 'sherpa-model-v2';
 
 // Fetch handler
 self.addEventListener('fetch', (event) => {

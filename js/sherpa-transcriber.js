@@ -6,8 +6,9 @@
  * Ported from bball-stats/web/lib/sherpa.ts
  */
 
+// Pin to Feb 14 2026 build — later builds cause WASM OOM on iOS Safari
 const SHERPA_CDN =
-    'https://huggingface.co/spaces/k2-fsa/web-assembly-asr-sherpa-onnx-en/resolve/main';
+    'https://huggingface.co/spaces/k2-fsa/web-assembly-asr-sherpa-onnx-en/resolve/42ec20bb27a0dfe53e3e38c5925e36de11440e89';
 
 /**
  * Load a script tag dynamically (deduped)
