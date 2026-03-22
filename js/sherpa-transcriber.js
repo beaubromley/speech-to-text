@@ -143,8 +143,15 @@ class SherpaTranscriber {
         // If module is cached but hotwords changed, just recreate the recognizer
         if (window._sherpaModule && hotwordsChanged) {
             console.log('[Sherpa] Recreating recognizer with new hotwords');
+            console.log('[Sherpa] hotwords:', JSON.stringify(this.hotwords), 'score:', this.hotwordsScore);
             if (this.onLoadingStatus) this.onLoadingStatus('Updating recognizer with new keywords...');
-            this.engine = this._createRecognizerFromModule(window._sherpaModule);
+            try {
+                this.engine = this._createRecognizerFromModule(window._sherpaModule);
+            } catch (e) {
+                const msg = e.message || e.name || (typeof e === 'string' ? e : JSON.stringify(e, Object.getOwnPropertyNames(e)));
+                console.error('[Sherpa] _createRecognizerFromModule failed:', msg, 'stack:', e.stack || 'none');
+                throw e;
+            }
             window._sherpaEngine = this.engine;
             this.lastHotwords = this.hotwords;
             this.lastHotwordsScore = this.hotwordsScore;
@@ -447,8 +454,9 @@ class SherpaTranscriber {
             return true;
 
         } catch (err) {
-            console.error('Sherpa start error:', err);
-            if (this.onError) this.onError(`Failed to start: ${err.message}`);
+            const errMsg = err.message || err.name || (typeof err === 'string' ? err : JSON.stringify(err, Object.getOwnPropertyNames(err)));
+            console.error('[Sherpa] start error:', errMsg, 'stack:', err.stack || 'none');
+            if (this.onError) this.onError(`Failed to start: ${errMsg}`);
             this._cleanupAudio();
             this._starting = false;
             return false;

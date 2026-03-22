@@ -29,6 +29,11 @@ class DebugPanel {
         header.className = 'debug-panel-header';
         header.innerHTML = '<span>Debug Log</span>';
 
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'debug-clear-btn';
+        copyBtn.textContent = 'Copy';
+        copyBtn.addEventListener('click', () => this.copyAll());
+
         const clearBtn = document.createElement('button');
         clearBtn.className = 'debug-clear-btn';
         clearBtn.textContent = 'Clear';
@@ -39,6 +44,7 @@ class DebugPanel {
         closeBtn.textContent = 'X';
         closeBtn.addEventListener('click', () => this.toggle());
 
+        header.appendChild(copyBtn);
         header.appendChild(clearBtn);
         header.appendChild(closeBtn);
 
@@ -98,6 +104,21 @@ class DebugPanel {
     toggle() {
         this.isVisible = !this.isVisible;
         this.panel.classList.toggle('hidden', !this.isVisible);
+    }
+
+    copyAll() {
+        const text = this.entries.map(e => `[${e.time}] [${e.level}] ${e.message}`).join('\n');
+        navigator.clipboard.writeText(text).catch(() => {
+            // Fallback for older browsers
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        });
     }
 
     clear() {
