@@ -12,6 +12,7 @@ const ASSETS = [
     './js/gemini-api.js',
     './js/vu-meter.js',
     './js/word-cloud.js',
+    './js/debug-panel.js',
     './images/favicon.png',
     './images/logo.png'
 ];

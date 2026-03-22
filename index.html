@@ -131,10 +131,20 @@
             </div>
         </section>
 
+        <!-- Manual Notes -->
+        <section class="manual-notes-section">
+            <div class="notes-input-row">
+                <input type="text" id="manual-note-input" class="manual-note-input"
+                       placeholder="Add a note (e.g., 'Speaker: Dr. Smith')..." />
+                <button id="add-note-btn" class="control-btn mark add-note-btn">NOTE</button>
+            </div>
+        </section>
+
         <!-- Transcript Display -->
         <section class="transcript-section">
             <div class="transcript-header">
-                <h2>Transcript</h2>
+                <input type="text" id="transcript-title" class="transcript-title-input"
+                       placeholder="Untitled recording..." maxlength="100" />
                 <div class="transcript-info">
                     <span id="word-count" class="word-count">0 words</span>
                     <button id="toggle-preview-btn" class="toggle-preview-btn">Preview</button>
@@ -311,6 +321,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <!-- Scripts -->
+    <script src="js/debug-panel.js"></script>
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/gemini-api.js"></script>

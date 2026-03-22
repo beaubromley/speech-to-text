@@ -211,7 +211,7 @@ class UIController {
             if (this.isPreviewMode && finalText.split(/\s+/).filter(w => w.length > 0).length > 20) {
                 html += `<span class="preview-ellipsis">... </span>`;
             }
-            html += `<span>${this.escapeHtml(displayFinalText)}</span>`;
+            html += `<span>${this.escapeHtml(displayFinalText).replace(/(\[NOTE\]:.*?)(\n|$)/g, '<span class="manual-note">$1</span>$2')}</span>`;
         }
         if (interimText) {
             if (displayFinalText && !displayFinalText.endsWith(' ')) {

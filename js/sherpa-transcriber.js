@@ -348,6 +348,7 @@ class SherpaTranscriber {
             // Create AudioContext
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: this.sampleRate });
             const actualRate = this.audioContext.sampleRate;
+            console.log('[Sherpa] AudioContext requested sampleRate:', this.sampleRate, 'actual:', actualRate);
 
             // Create ScriptProcessor
             this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);

@@ -50,15 +50,22 @@ const Utils = {
      * @param {string} text - Text to export
      * @param {string} filename - Name of the file
      */
-    exportAsTextFile(text, filename = 'transcript.txt') {
+    exportAsTextFile(text, filename = 'transcript.txt', title = '') {
         if (!text || text.trim().length === 0) {
             return false;
         }
 
         try {
-            // Add timestamp to filename
+            // Build filename with optional title
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            const timestampedFilename = filename.replace('.txt', `_${timestamp}.txt`);
+            let timestampedFilename;
+            if (title && title.trim()) {
+                const safeTitle = title.trim().replace(/[/\\:*?"<>|]/g, '_').substring(0, 100);
+                const baseLabel = filename.replace('.txt', '');
+                timestampedFilename = `${safeTitle} - ${baseLabel}_${timestamp}.txt`;
+            } else {
+                timestampedFilename = filename.replace('.txt', `_${timestamp}.txt`);
+            }
 
             // Create blob and download
             const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
@@ -147,6 +154,7 @@ const Utils = {
         THEME_KEY: 'speech-to-text-theme',
         KEYWORDS_KEY: 'speech-to-text-keywords',
         HOTWORDS_SCORE_KEY: 'speech-to-text-hotwords-score',
+        TITLE_KEY: 'speech-to-text-title',
 
         /**
          * Save transcript to localStorage
@@ -224,6 +232,35 @@ const Utils = {
                 return true;
             } catch (error) {
                 console.error('Error clearing localStorage:', error);
+                return false;
+            }
+        },
+
+        saveTitle(title) {
+            try {
+                localStorage.setItem(this.TITLE_KEY, title);
+                return true;
+            } catch (error) {
+                console.error('Error saving title:', error);
+                return false;
+            }
+        },
+
+        loadTitle() {
+            try {
+                return localStorage.getItem(this.TITLE_KEY) || '';
+            } catch (error) {
+                console.error('Error loading title:', error);
+                return '';
+            }
+        },
+
+        clearTitle() {
+            try {
+                localStorage.removeItem(this.TITLE_KEY);
+                return true;
+            } catch (error) {
+                console.error('Error clearing title:', error);
                 return false;
             }
         },

@@ -16,6 +16,8 @@ class LectureTranscriberApp {
         this.wordCloud = new WordCloud('word-cloud-container');
         this.recordingStartTime = null;
         this.keywords = [];
+        this.transcriptTitle = '';
+        this.debugPanel = typeof DebugPanel !== 'undefined' ? new DebugPanel() : null;
 
         // Auto-save debounced
         this.autoSave = Utils.debounce((text) => {
@@ -53,9 +55,10 @@ class LectureTranscriberApp {
         // Restore keywords
         this.restoreKeywords();
 
-        // Restore saved transcript and summary
+        // Restore saved transcript, summary, and title
         this.restoreTranscript();
         this.restoreSummary();
+        this.restoreTitle();
 
         // Restore auto-summary preference
         this.initAutoSummaryToggle();
@@ -316,6 +319,28 @@ class LectureTranscriberApp {
                 Utils.wakeLock.request();
             }
         });
+
+        // Transcript title input
+        const titleInput = document.getElementById('transcript-title');
+        if (titleInput) {
+            const saveTitle = Utils.debounce((val) => {
+                this.transcriptTitle = val;
+                Utils.storage.saveTitle(val);
+            }, 500);
+            titleInput.addEventListener('input', () => saveTitle(titleInput.value));
+        }
+
+        // Manual notes
+        const addNoteBtn = document.getElementById('add-note-btn');
+        const noteInput = document.getElementById('manual-note-input');
+        if (addNoteBtn) {
+            addNoteBtn.addEventListener('click', () => this.addManualNote());
+        }
+        if (noteInput) {
+            noteInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') this.addManualNote();
+            });
+        }
     }
 
     /**
@@ -443,6 +468,42 @@ class LectureTranscriberApp {
     }
 
     /**
+     * Restore title from storage
+     */
+    restoreTitle() {
+        const title = Utils.storage.loadTitle();
+        if (title) {
+            this.transcriptTitle = title;
+            const titleInput = document.getElementById('transcript-title');
+            if (titleInput) titleInput.value = title;
+        }
+    }
+
+    /**
+     * Add a manual note to the transcript
+     */
+    addManualNote() {
+        const input = document.getElementById('manual-note-input');
+        if (!input) return;
+
+        const text = input.value.trim();
+        if (!text) return;
+
+        const transcriber = this.getCurrentTranscriber();
+        if (transcriber && transcriber.finalTranscript !== undefined) {
+            if (transcriber.finalTranscript.length > 0 && !transcriber.finalTranscript.endsWith('\n')) {
+                transcriber.finalTranscript += '\n';
+            }
+            transcriber.finalTranscript += `[NOTE]: ${text}\n`;
+            this.ui.updateTranscript({ final: transcriber.finalTranscript, interim: transcriber.interimTranscript || '' });
+            this.autoSave(transcriber.finalTranscript);
+        }
+
+        input.value = '';
+        this.ui.showSuccess('Note added');
+    }
+
+    /**
      * Clear transcript
      */
     async clearTranscript() {
@@ -470,6 +531,12 @@ class LectureTranscriberApp {
         // Clear from storage
         Utils.storage.clearTranscript();
         Utils.storage.clearSummary();
+        Utils.storage.clearTitle();
+
+        // Clear title
+        this.transcriptTitle = '';
+        const titleInput = document.getElementById('transcript-title');
+        if (titleInput) titleInput.value = '';
 
         // Update UI
         this.ui.updateTranscript({ final: '', interim: '' });
@@ -530,7 +597,7 @@ class LectureTranscriberApp {
             return;
         }
 
-        const success = Utils.exportAsTextFile(text, 'lecture-transcript.txt');
+        const success = Utils.exportAsTextFile(text, 'TRANSCRIPTION.txt', this.transcriptTitle);
         if (success) {
             this.ui.showSuccess('Transcript exported!');
         } else {
@@ -561,7 +628,7 @@ class LectureTranscriberApp {
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: 'Speech-to-Text Transcript',
+                    title: this.transcriptTitle || 'Speech-to-Text Transcript',
                     text: shareText
                 });
                 this.ui.showSuccess('Shared!');
@@ -865,7 +932,7 @@ class LectureTranscriberApp {
             return;
         }
 
-        const success = Utils.exportAsTextFile(this.currentSummary, 'transcript-summary.txt');
+        const success = Utils.exportAsTextFile(this.currentSummary, 'SUMMARY.txt', this.transcriptTitle);
         if (success) {
             this.ui.showSuccess('Summary exported!');
         } else {
