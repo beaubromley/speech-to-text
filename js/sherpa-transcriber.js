@@ -207,7 +207,16 @@ class SherpaTranscriber {
             console.log('[Sherpa] Module cached, creating recognizer...');
 
             // Create the recognizer
-            this.engine = this._createRecognizerFromModule(module);
+            console.log('[Sherpa] Creating recognizer, hotwords:', JSON.stringify(this.hotwords), 'score:', this.hotwordsScore);
+            console.log('[Sherpa] createOnlineRecognizer type:', typeof window.createOnlineRecognizer);
+            try {
+                this.engine = this._createRecognizerFromModule(module);
+            } catch (e) {
+                const msg = e.message || e.name || (typeof e === 'string' ? e : JSON.stringify(e, Object.getOwnPropertyNames(e)));
+                console.error('[Sherpa] _createRecognizerFromModule failed:', msg);
+                if (e.stack) console.error('[Sherpa] stack:', e.stack);
+                throw e;
+            }
             window._sherpaEngine = this.engine;
             this.lastHotwords = this.hotwords;
             this.lastHotwordsScore = this.hotwordsScore;
@@ -216,8 +225,10 @@ class SherpaTranscriber {
             console.log('[Sherpa] Engine ready');
             if (this.onLoadingStatus) this.onLoadingStatus('Sherpa-ONNX ready');
         } catch (err) {
-            console.error('[Sherpa] loadEngine failed:', err);
-            if (this.onError) this.onError(`Failed to load Sherpa-ONNX: ${err.message}`);
+            const errMsg = err.message || err.name || (typeof err === 'string' ? err : JSON.stringify(err, Object.getOwnPropertyNames(err)));
+            console.error('[Sherpa] loadEngine failed:', errMsg);
+            if (err.stack) console.error('[Sherpa] stack:', err.stack);
+            if (this.onError) this.onError(`Failed to load Sherpa-ONNX: ${errMsg}`);
             throw err;
         } finally {
             if (this.onLoadingChange) this.onLoadingChange(false);
